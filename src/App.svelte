@@ -59,7 +59,7 @@
 
 
   $: Time_to_death     = 32
-  $: logN              = Math.log(7e6)
+  $: logN              = Math.log(1415872)
   $: N                 = Math.exp(logN)
   $: I0                = 1
   $: R0                = 2.2
