@@ -184,15 +184,11 @@
       v =integrate(method,f,v,t,dt); 
       t+=dt
 
-      if (t > currentInterventionTime) {
-        var index = interventionLines.indexOf(currentInterventionLine)
-        if (index > -1 && !!interventionLines[index+1]) {
-          // console.log(`currentInterventionTime old=${currentInterventionTime} new=${interventionTimes[index+1]}`)
-          // console.log(`currentInterventionAmt old=${currentInterventionAmt} new=${interventionAmts[index+1]}`)
-          currentInterventionLine = interventionLines[index+1]
-          currentInterventionTime = currentInterventionLine.time
-          currentInterventionAmt = currentInterventionLine.amount
-        }
+      var nextLine = interventionLines[interventionLines.indexOf(currentInterventionLine)+1]
+      if (nextLine && t > nextLine.time) {
+        currentInterventionLine = nextLine
+        currentInterventionTime = currentInterventionLine.time
+        currentInterventionAmt = currentInterventionLine.amount
       }
     }
     return {"P": P, 
