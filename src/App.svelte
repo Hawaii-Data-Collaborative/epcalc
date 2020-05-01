@@ -70,14 +70,14 @@
   $: D_recovery_severe = (31.5 - 2.9)
   $: D_hospital_lag    = 5
   $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = 0.02  
+  $: CFR               = 0.005 //0.02  
   $: InterventionTime  = 100  
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 2
-  $: P_SEVERE          = 0.2
+  $: P_SEVERE          = 0.045 //0.2
   $: duration          = 7*12*1e10
   
   $: interventionLines = [{
@@ -106,6 +106,38 @@
                "InterventionAmt":InterventionAmt,
                "D_hospital_lag":D_hospital_lag,
                "P_SEVERE": P_SEVERE})
+
+let initialState = null
+function serializeState() {
+  return JSON.stringify({ Time_to_death, logN, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines })
+}
+function setState(data) {
+  if (!(data.logN === undefined)) {logN = data.logN}
+  if (!(data.I0 === undefined)) {I0 = parseFloat(data.I0)}
+  if (!(data.R0 === undefined)) {R0 = parseFloat(data.R0)}
+  if (!(data.D_incbation === undefined)) {D_incbation = parseFloat(data.D_incbation)}
+  if (!(data.D_infectious === undefined)) {D_infectious = parseFloat(data.D_infectious)}
+  if (!(data.D_recovery_mild === undefined)) {D_recovery_mild = parseFloat(data.D_recovery_mild)}
+  if (!(data.D_recovery_severe === undefined)) {D_recovery_severe = parseFloat(data.D_recovery_severe)}
+  if (!(data.CFR === undefined)) {CFR = parseFloat(data.CFR)}
+  if (!(data.InterventionTime === undefined)) {InterventionTime = parseFloat(data.InterventionTime)}
+  if (!(data.InterventionAmt === undefined)) {InterventionAmt = parseFloat(data.InterventionAmt)}
+  if (!(data.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(data.D_hospital_lag)}
+  if (!(data.P_SEVERE === undefined)) {P_SEVERE = parseFloat(data.P_SEVERE)}
+  if (!(data.Time_to_death === undefined)) {Time_to_death = parseFloat(data.Time_to_death)}
+  if (!(data.interventionLines === undefined)) {interventionLines = interventionLines.map(l => ({
+    time: Number(l.time),
+    amount: Number(l.amount),
+    om: Number(l.om),
+    index: Number(l.index)
+  }))}
+}
+function setInitialState() {
+  initialState = serializeState()
+}
+function getInitialState() {
+  return initialState === null ? null : JSON.parse(initialState)
+}
 
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
@@ -290,21 +322,10 @@
 
     if (typeof window !== 'undefined') {
       parsed = queryString.parse(window.location.search)
-      if (!(parsed.logN === undefined)) {logN = parsed.logN}
-      if (!(parsed.I0 === undefined)) {I0 = parseFloat(parsed.I0)}
-      if (!(parsed.R0 === undefined)) {R0 = parseFloat(parsed.R0)}
-      if (!(parsed.D_incbation === undefined)) {D_incbation = parseFloat(parsed.D_incbation)}
-      if (!(parsed.D_infectious === undefined)) {D_infectious = parseFloat(parsed.D_infectious)}
-      if (!(parsed.D_recovery_mild === undefined)) {D_recovery_mild = parseFloat(parsed.D_recovery_mild)}
-      if (!(parsed.D_recovery_severe === undefined)) {D_recovery_severe = parseFloat(parsed.D_recovery_severe)}
-      if (!(parsed.CFR === undefined)) {CFR = parseFloat(parsed.CFR)}
-      if (!(parsed.InterventionTime === undefined)) {InterventionTime = parseFloat(parsed.InterventionTime)}
-      if (!(parsed.InterventionAmt === undefined)) {InterventionAmt = parseFloat(parsed.InterventionAmt)}
-      if (!(parsed.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(parsed.D_hospital_lag)}
-      if (!(parsed.P_SEVERE === undefined)) {P_SEVERE = parseFloat(parsed.P_SEVERE)}
-      if (!(parsed.Time_to_death === undefined)) {Time_to_death = parseFloat(parsed.Time_to_death)}
-
+      setState(parsed)
     }
+
+    setInitialState()
   });
 
   function lock_yaxis(){
@@ -426,6 +447,63 @@
 
   $: milestones = get_milestones(P)
   $: log = true
+
+  // Scenario stuff.
+  let scenario
+  let scenarios = []
+
+  const createScenario = () => {
+    var newId = scenarios.length ? Math.max(...scenarios.map(s=>s.id)) + 1 : 1
+    return {
+      id: newId,
+      name: 'Scenario ' + newId,
+      data: null
+    }
+  }
+
+  const saveScenario = () => {
+    scenario.data = serializeState()
+  }
+
+  const loadScenario = (s) => {
+    scenario = s
+    if (scenario.data) {
+      var data = JSON.parse(scenario.data)
+      setState(data)
+    }
+  }
+
+  const onScenarioClick = (s) => {
+    saveScenario()
+    loadScenario(s)
+  }
+
+  const onAddScenarioClick = () => {
+    saveScenario()
+    var newScenario = createScenario()
+
+    scenarios = [
+      ...scenarios,
+      newScenario
+    ]
+
+    scenario = newScenario
+    
+    setState(getInitialState())
+  }
+
+  const onDeleteScenarioClick = () => {
+    scenarios = scenarios.filter(s=>s.id !== scenario.id)
+    if (scenarios.length) {
+      loadScenario(scenarios[0])
+    } else {
+      scenario = createScenario()
+      scenarios = [scenario]
+    }
+  }
+
+  scenario = createScenario()
+  scenarios = [scenario]
 
 </script>
 
@@ -636,22 +714,99 @@
     width: 33px;
     height: 28px;
   }
-  .btn:not(:disabled):hover {
-    cursor: pointer;
-    background: #3265aa;
-  }
-  .btn:not(:disabled):active {
-    background: #2c60a5;
-  }
   .btn:not(:disabled):focus {
     outline: none;
   }
   .btn:disabled {
     opacity: 0.8;
   }
+  .btn:not(:disabled):hover {
+    cursor: pointer;
+  }
+  .btn-primary:not(:disabled):hover {
+    background: #3265aa;
+  }
+  .btn-primary:not(:disabled):active {
+    background: #2c60a5;
+  }
+  .btn-remove {
+    background: #f00a;
+  }
+  .btn-remove:not(:disabled):hover {
+    background: #f00c;
+  }
+  .btn-remove:not(:disabled):active {
+    background: #f00;
+  }
+
+  .scenario-section {
+    font-family: nyt-franklin,helvetica,arial,sans-serif;
+    font-size: 15px;
+    color: #777;
+  }
+  .scenario-list {
+    height: 100px;
+    overflow-y: auto;
+  }
+  .scenario-list-item {
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .scenario-list-item:hover {
+    background: #fafafa;
+    color: #333;
+  }
+  .scenario-list-item.active {
+    background: #f8f8f8;
+    color: #386cb0;
+  }
+  .btn-add, .btn-remove {
+    width: auto;
+    height: auto;
+    padding: 1px 6px;
+  }
+  input#scenario-name {
+    font-family: nyt-franklin,helvetica,arial,sans-serif;
+    font-size: 16px;
+    padding: 4px 9px;
+    appearance: none;
+    color: #555;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+  }
+  input#scenario-name:focus {
+    outline: none;
+    border-color: #00f8;
+  }
 </style>
 
 <h2>Epidemic Calculator</h2>
+
+<!-- Custom controls begin -->
+<div style="padding: 0 20px 40px; display: flex; justify-content: center;">
+  <div class="scenario-section" style="display: flex; border: 1px solid #eee;">
+    <div class="list" style="border-right: 1px solid #eee; min-width: 200px;">
+      <div class="list-header" style="font-weight: bold; font-size: 16px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
+        <span style="margin-right: 10px;">Scenarios</span>
+        <button on:click={onAddScenarioClick} class="btn btn-primary btn-add">+</button>
+      </div>
+      <div class="scenario-list">
+        {#each scenarios as s}
+          <div class="scenario-list-item {s === scenario ? 'active' : ''}" on:click={()=> onScenarioClick(s)}>{s.name}</div>
+        {/each}
+      </div>
+    </div>
+    <div class="detail" style="padding: 10px;">
+      <div style="display: flex; align-items: center;">
+        <input id="scenario-name" type="text" bind:value={scenario.name} style="margin-right: 15px" />
+        <button on:click={onDeleteScenarioClick} class="btn btn-remove">&times;</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Custom controls end -->
 
 <div class="chart" style="display: flex; max-width: 1120px">
 
@@ -927,52 +1082,6 @@
 
 
 
-<!-- 
-      {#if xScaleTime(InterventionTime+duration) < (width - padding.right)}
-        <div id="dottedline2" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:105px; left:10px; pointer-events: none;">
-          <div style="
-              position: absolute;
-              top:-38px;
-              left:{xScaleTime(InterventionTime+duration)}px;
-              visibility: {(xScaleTime(InterventionTime+duration) < (width - padding.right)) ? 'visible':'hidden'};
-              width:3px;
-              background-color:white;
-              border-right: 1px dashed black;
-              cursor:col-resize;
-              opacity: 0.3;
-              pointer-events: all;
-              height:{height+13}px">
-            <div style="position:absolute; opacity: 0.5; top:-10px; left:10px; width: 120px">
-            <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*InterventionAmt).toFixed(2) )}</span> ⟶ 
-            </div>
-          </div>
-        </div>
-
-        <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:120px; left:10px; pointer-events: none">
-          <div style="
-              opacity: 0.5;
-              position: absolute;
-              top:-38px;
-              left:{xScaleTime(InterventionTime+duration)}px;
-              visibility: {(xScaleTime(InterventionTime+duration) < (width - padding.right)) ? 'visible':'hidden'};
-              width:2px;
-              background-color:#FFF;
-              cursor:col-resize;
-              height:{height}px">
-              <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-                <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
-                <div class="paneltext"  style="height:20px; text-align: right">
-                <div class="paneldesc">decrease transmission by<br></div>
-                </div>
-                <div style="pointer-events: all">
-                <div class="slidertext" on:mousedown={lock_yaxis}>{(InterventionAmt).toFixed(2)}</div>
-                <input class="range" type=range bind:value={InterventionAmt} min=0 max=1 step=0.01 on:mousedown={lock_yaxis}>
-                </div>
-                </div>
-              </div>
-            </div>
-        </div>
-      {/if} -->
 
 
       <div style="pointer-events: none;
@@ -1001,11 +1110,13 @@
 
 </div>
 
+<!-- Custom controls begin -->
 <div style="padding: 0 20px 40px; display: flex; justify-content: center; align-items: center;">
   <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
-  <button on:click={onRemoveLineClick} class="btn" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
-  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 34px;" class="btn" disabled="{uiInterventionLines.length >= 5 ? 'disabled' : ''}">+</button>
+  <button on:click={onRemoveLineClick} class="btn btn-primary" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
+  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd;" class="btn btn-primary" disabled="{uiInterventionLines.length >= 5 ? 'disabled' : ''}">+</button>
 </div>
+<!-- Custom controls end -->
 
 <div style="height:220px;">
   <div class="minorTitle">
