@@ -125,7 +125,7 @@ function setState(data) {
   if (!(data.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(data.D_hospital_lag)}
   if (!(data.P_SEVERE === undefined)) {P_SEVERE = parseFloat(data.P_SEVERE)}
   if (!(data.Time_to_death === undefined)) {Time_to_death = parseFloat(data.Time_to_death)}
-  if (!(data.interventionLines === undefined)) {interventionLines = interventionLines.map(l => ({
+  if (!(data.interventionLines === undefined)) {interventionLines = data.interventionLines.map(l => ({
     time: Number(l.time),
     amount: Number(l.amount),
     om: Number(l.om),
@@ -481,14 +481,8 @@ function getInitialState() {
   const onAddScenarioClick = () => {
     saveScenario()
     var newScenario = createScenario()
-
-    scenarios = [
-      ...scenarios,
-      newScenario
-    ]
-
+    scenarios = [ ...scenarios, newScenario ]
     scenario = newScenario
-    
     setState(getInitialState())
   }
 
@@ -502,9 +496,32 @@ function getInitialState() {
     }
   }
 
-  scenario = createScenario()
-  scenarios = [scenario]
+  const onNameChange = (e) => {
+    scenario.name = e.target.value
+    scenarios = scenarios
+  }
 
+  const onSaveClick = () => {
+    saveScenario()
+    localStorage.scenarios = JSON.stringify(scenarios)
+  }
+
+  const onResetClick = () => {
+    delete localStorage.scenarios
+    init()
+  }
+
+  const init = () => {
+    if (localStorage.scenarios) {
+      scenarios = JSON.parse(localStorage.scenarios)
+      scenario = scenarios[0] || createScenario()
+    } else {
+      scenario = createScenario()
+      scenarios = [scenario]
+    }
+  }
+
+  init()
 </script>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.css" integrity="sha384-bsHo4/LA+lkZv61JspMDQB9QP1TtO4IgOf2yYS+J6VdAYLVyx1c3XKcsHh0Vy8Ws" crossorigin="anonymous">
@@ -709,10 +726,15 @@ function getInitialState() {
     border: none;
     color: #fff;
     font-family: nyt-franklin,helvetica,arial,sans-serif;
+    font-size: 15px;
+  }
+  .btn-icon {
     font-size: 20px;
     line-height: 20px;
-    width: 33px;
-    height: 28px;
+  }
+  .btn-text {
+    padding: 5px 10px;
+    font-size: 13px;
   }
   .btn:not(:disabled):focus {
     outline: none;
@@ -761,8 +783,6 @@ function getInitialState() {
     color: #386cb0;
   }
   .btn-add, .btn-remove {
-    width: auto;
-    height: auto;
     padding: 1px 6px;
   }
   input#scenario-name {
@@ -788,20 +808,24 @@ function getInitialState() {
 <div style="padding: 0 20px 40px; display: flex; justify-content: center;">
   <div class="scenario-section" style="display: flex; border: 1px solid #eee;">
     <div class="list" style="border-right: 1px solid #eee; min-width: 200px;">
-      <div class="list-header" style="font-weight: bold; font-size: 16px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
+      <div class="list-header" style="font-weight: bold; font-size: 16px; padding: 3px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
         <span style="margin-right: 10px;">Scenarios</span>
-        <button on:click={onAddScenarioClick} class="btn btn-primary btn-add">+</button>
+        <button on:click={onAddScenarioClick} class="btn btn-primary btn-icon btn-add">+</button>
       </div>
       <div class="scenario-list">
         {#each scenarios as s}
-          <div class="scenario-list-item {s === scenario ? 'active' : ''}" on:click={()=> onScenarioClick(s)}>{s.name}</div>
+          <div class="scenario-list-item {s.id === scenario.id ? 'active' : ''}" on:click={()=> onScenarioClick(s)}>{s.name}</div>
         {/each}
       </div>
     </div>
     <div class="detail" style="padding: 10px;">
       <div style="display: flex; align-items: center;">
-        <input id="scenario-name" type="text" bind:value={scenario.name} style="margin-right: 15px" />
-        <button on:click={onDeleteScenarioClick} class="btn btn-remove">&times;</button>
+        <input id="scenario-name" type="text" value={scenario.name} on:input={onNameChange} style="margin-right: 15px">
+        <button on:click={onDeleteScenarioClick} class="btn btn-icon btn-remove">&times;</button>
+      </div>
+      <div style="margin-top: 20px">
+        <div><button on:click={onSaveClick} class="btn btn-text btn-primary save">Save session</button></div>
+        <div style="margin-top: 10px"><button on:click={onResetClick} class="btn btn-text btn-primary reset">Clear session</button></div>
       </div>
     </div>
   </div>
@@ -1113,8 +1137,8 @@ function getInitialState() {
 <!-- Custom controls begin -->
 <div style="padding: 0 20px 40px; display: flex; justify-content: center; align-items: center;">
   <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
-  <button on:click={onRemoveLineClick} class="btn btn-primary" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
-  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd;" class="btn btn-primary" disabled="{uiInterventionLines.length >= 5 ? 'disabled' : ''}">+</button>
+  <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
+  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{uiInterventionLines.length >= 5 ? 'disabled' : ''}">+</button>
 </div>
 <!-- Custom controls end -->
 
