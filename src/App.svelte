@@ -13,7 +13,8 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import {differenceInCalendarDays} from 'date-fns'
+  import { differenceInCalendarDays } from 'date-fns'
+  import _ from 'lodash'
 
   const legendheight = 67 
 
@@ -139,6 +140,8 @@
       label: '5/31: Potential phased reopening'
     }
   ]
+
+  $: sortedInterventionLines = _.sortBy([...staticLines, ...interventionLines], 'time')
 
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
                "logN":logN,
@@ -280,7 +283,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, [...staticLines, ...interventionLines], duration)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -1086,9 +1089,9 @@ function getInitialState() {
               <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*line.amount).toFixed(2) )}</span> ⟶ 
             </div>
 
-            <div style="position:absolute; color: #777; top:-2px; left:-97px; width: 120px z-index: 1; background: #fffc;">
+            <!-- <div style="position:absolute; color: #777; top:-2px; left:-97px; width: 120px z-index: 1; background: #fffc;">
               <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (staticLines[i-1] ? staticLines[i-1].amount*R0 : R0).toFixed(2) )}</span>
-            </div>
+            </div> -->
             
             <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc;">
               <div>{line.label}</div>
