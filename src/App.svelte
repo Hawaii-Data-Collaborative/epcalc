@@ -91,6 +91,11 @@
 
   $: firstLine = interventionLines[0]
 
+  $: stayAtHomeLine = {
+    time: 17, // First case March 6, stay home order March 23
+    amount: 1.8 / R0 // Rt 1.8
+  }
+
   $: activeIndex = -1
 
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
@@ -142,7 +147,6 @@ function getInitialState() {
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
   function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration) {
-
     var interpolation_steps = 40
     var steps = 110*interpolation_steps
     var dt = dt/interpolation_steps
@@ -157,13 +161,12 @@ function getInitialState() {
     function f(t, x){
 
       // SEIR ODE
-      // console.log(`currentInterventionTime=${currentInterventionTime} currentInterventionAmt=${currentInterventionAmt}`)
       if (t > currentInterventionTime && t < currentInterventionTime + duration){
-        var beta = (currentInterventionAmt)*R0/(D_infectious)
+        var beta = currentInterventionAmt*R0 / D_infectious
       } else if (t > currentInterventionTime + duration) {
-        var beta = 0.5*R0/(D_infectious)        
+        var beta = 0.5 * R0 / D_infectious
       } else {
-        var beta = R0/(D_infectious)
+        var beta = R0 / D_infectious
       }
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
@@ -235,7 +238,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, [stayAtHomeLine, ...interventionLines], duration)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -782,7 +785,7 @@ function getInitialState() {
     background: #f8f8f8;
     color: #386cb0;
   }
-  .btn-add, .btn-remove {
+  .btn-add {
     padding: 1px 6px;
   }
   input#scenario-name {
@@ -819,14 +822,12 @@ function getInitialState() {
       </div>
     </div>
     <div class="detail" style="padding: 10px;">
-      <div style="display: flex; align-items: center;">
-        <input id="scenario-name" type="text" value={scenario.name} on:input={onNameChange} style="margin-right: 15px">
-        <button on:click={onDeleteScenarioClick} class="btn btn-icon btn-remove">&times;</button>
-      </div>
-      <div style="margin-top: 20px">
+      <div><input id="scenario-name" type="text" value={scenario.name} on:input={onNameChange} style="margin-right: 15px"></div>
+      <div style="margin-top: 10px"><button on:click={onDeleteScenarioClick} class="btn btn-remove btn-text">Delete scenario</button></div>
+      <!-- <div style="margin-top: 20px">
         <div><button on:click={onSaveClick} class="btn btn-text btn-primary save">Save session</button></div>
         <div style="margin-top: 10px"><button on:click={onResetClick} class="btn btn-text btn-primary reset">Clear session</button></div>
-      </div>
+      </div> -->
     </div>
   </div>
 </div>
@@ -1011,6 +1012,32 @@ function getInitialState() {
                   cursor:row-resize">
       </div>
 
+      <!-- Stay home order intervention line -->
+      <div class="stayhome" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+        <div id="fixeddottedline"  style="pointer-events: all;
+                    position: absolute;
+                    top:-38px;
+                    left:{xScaleTime(stayAtHomeLine.time)}px;
+                    width:2px;
+                    background-color:#FFF;
+                    border-right: 1px dashed #0003;
+                    pointer-events: all;
+                    height:{height+19}px">
+
+          <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px;">
+            <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*stayAtHomeLine.amount).toFixed(2) )}</span> ⟶ 
+          </div>
+
+          <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px">
+            <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
+          </div>
+          
+          <div class="caption" style="position: absolute; top: 105px; left: -3px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap;">
+            <div style="transform: rotate(-90deg);">March 23: stay-at-home order</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Intervention Line -->
       <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
         <div id="dottedline"  style="pointer-events: all;
@@ -1029,11 +1056,11 @@ function getInitialState() {
         <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*firstLine.amount).toFixed(2) )}</span> ⟶ 
         </div>
 
-        {#if xScaleTime(firstLine.time) >= 100}
+        <!-- {#if xScaleTime(firstLine.time) >= 100}
           <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px">
           <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
           </div>      
-        {/if}
+        {/if} -->
 
         <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
           <div class="paneltitle" style="top:9px; position: relative; text-align: right">Intervention on day {format("d")(firstLine.time)}</div>
