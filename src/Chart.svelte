@@ -4,6 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
+  import { addDays, format } from 'date-fns'
 
   const dispatch = createEventDispatcher();
 
@@ -40,6 +41,7 @@
   export let InterventionTime;
   export let colors; 
   export let log = false;
+  export let startDate;
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
@@ -198,7 +200,7 @@
     <g class="axis x-axis">
       {#each xScaleTime.ticks() as i}
         <g class="tick" transform="translate({xScaleTime(i)},{height})">
-          <text x="0" y="-4">{i == 0 ? "Day ":""}{i}</text>
+          <text x="0" y="-4">{format(addDays(startDate, i+1), 'M/d')}</text>
         </g>
       {/each}
     </g>

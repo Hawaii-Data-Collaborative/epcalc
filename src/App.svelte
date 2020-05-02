@@ -846,11 +846,15 @@ function getInitialState() {
     border-color: #00f8;
   }
 
+  .static-line .dottedline,
   .static-line .dottedline * {
-    visibility: hidden;
+    transition: all 100ms;
+  }
+  .static-line .dottedline * {
+    opacity: 0;
   }
   .static-line .dottedline:hover * {
-    visibility: visible;
+    opacity: 1;
   }
   .static-line .dottedline:hover {
     border-right-color: #000 !important;
@@ -1037,7 +1041,8 @@ function getInitialState() {
              ymax={lock ? Plock: Pmax}
              InterventionTime={firstLine.time}
              colors={colors}
-             log={!log}/>
+             log={!log}
+             startDate={startDate} />
       </div>
 
       <div id="xAxisDrag"
@@ -1077,11 +1082,11 @@ function getInitialState() {
                       pointer-events: all;
                       height:{height}px">
 
-            <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px; z-index: 1; background: #fffc;">
+            <div style="position:absolute; color: #777; top:-5px; left:10px; width: 120px; z-index: 1; background: #fffc;">
               <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*line.amount).toFixed(2) )}</span> ⟶ 
             </div>
 
-            <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px z-index: 1; background: #fffc;">
+            <div style="position:absolute; color: #777; top:-2px; left:-97px; width: 120px z-index: 1; background: #fffc;">
               <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (staticLines[i-1] ? staticLines[i-1].amount*R0 : R0).toFixed(2) )}</span>
             </div>
             
