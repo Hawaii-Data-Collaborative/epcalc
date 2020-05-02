@@ -6,6 +6,7 @@
   import { drag } from 'd3-drag';
   import { selectAll } from 'd3-selection'
   import katex from 'katex';
+  import { addDays, format as dateFormat } from 'date-fns'
 
   export let time
   export let amount
@@ -20,6 +21,7 @@
   export let drag_intervention
   export let onLineChange
   export let onLineToggle
+  export let startDate
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
   $: xScaleTime = scaleLinear()
@@ -113,12 +115,15 @@
               cursor:col-resize;
               height:{height}px">
   
-  <div on:click={() => onLineToggle(index)} class="caption" style="position: absolute; top: 15px; left: 0; transform: translateX(-50%); background: #fffa; font-size: 12px; color: {show ? '#111' : '#777'}; cursor: pointer; user-select: none; z-index: 1;">toggle</div>
+  <div on:click={() => onLineToggle(index)} class="caption" style="position: absolute; top: 15px; left: 0; transform: translateX(-50%); background: #fffa; font-size: 12px; color: {show ? '#111' : '#777'}; cursor: pointer; user-select: none; z-index: 1; padding: 1px 4px;">toggle</div>
 
   <div id="shadow2" style="display: {show ? '' : 'none'}; background: #fff; z-index: 1; position: absolute; width: 300px; height: 108px; top: -98px; left: -126px; box-shadow: 0px 0px 20px 1px #0001;"></div>
 
   <div id="interventionDrag2" class="legendtext" style="display: {show ? '' : 'none'}; background: #fff; z-index: 2; flex: 0 0 160px; width:120px; position:relative;  top:-83px; height: 79px; padding-right: 7px; left: -126px; pointer-events: all;cursor:col-resize;" >
-    <div class="paneltitle" style="top:2px; position: relative; text-align: right;">Intervention {index+1} on day {format("d")(time)}</div>
+    <div class="paneltitle" style="top:2px; position: relative; text-align: right;">
+      Intervention {index+1} on day {format("d")(time)}
+      <span style="font-weight:normal">({dateFormat(addDays(startDate, time), 'M/d/yy')})</span>
+    </div>
     <span></span><div style="top:9px; position: relative; text-align: right">
     (drag me)</div>
     <div style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">

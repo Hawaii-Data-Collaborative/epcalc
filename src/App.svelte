@@ -13,7 +13,7 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import { differenceInCalendarDays } from 'date-fns'
+  import { differenceInCalendarDays, addDays, format as dateFormat } from 'date-fns'
   import _ from 'lodash'
 
   const legendheight = 67 
@@ -88,9 +88,8 @@
     index: 0
   }]
 
-  $: uiInterventionLines = interventionLines.slice(1)
   $: firstLine = interventionLines[0]
-  $: activeIndex = -1
+  $: activeIndex = 0
 
   $: startDate = new Date('2020-03-06')
   $: staticLines = [
@@ -386,14 +385,14 @@ function getInitialState() {
   }
 
   function onAddLineClick() {
-    var last = interventionLines[interventionLines.length-1]
+    var last = interventionLines[interventionLines.length-1] || { time: 100, om: 2/3, amount: 1/3, index: 0 }
     var index = interventionLines.length
     interventionLines = [
       ...interventionLines,
       {
         time: last.time + 30,
-        om: last.amount - 0.1,
-        amount: 1 - (last.amount - 0.1),
+        om: last.om,
+        amount: last.amount,
         index: index
       }
     ]
@@ -1101,81 +1100,7 @@ function getInitialState() {
       {/each}
       
 
-      <!-- Intervention Line -->
-      <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-        <div id="dottedline"  style="pointer-events: all;
-                    position: absolute;
-                    top:-38px;
-                    left:{xScaleTime(firstLine.time)}px;
-                    visibility: {(xScaleTime(firstLine.time) < (width - padding.right)) ? 'visible':'hidden'};
-                    width:2px;
-                    background-color:#FFF;
-                    border-right: 1px dashed black;
-                    pointer-events: all;
-                    cursor:col-resize;
-                    height:{height+19}px">
-
-        <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px;">
-        <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*firstLine.amount).toFixed(2) )}</span> ⟶ 
-        </div>
-
-        <!-- {#if xScaleTime(firstLine.time) >= 100}
-          <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px">
-          <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
-          </div>      
-        {/if} -->
-
-        <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
-          <div class="paneltitle" style="top:9px; position: relative; text-align: right">Intervention on day {format("d")(firstLine.time)}</div>
-          <span></span><div style="top:9px; position: relative; text-align: right">
-          (drag me)</div>
-          <div style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
-            <svg width="20" height="20">
-              <g transform="rotate(90)">
-                <g transform="translate(0,-20)">
-                  <path d="M2 11h16v2H2zm0-4h16v2H2zm8 11l3-3H7l3 3zm0-16L7 5h6l-3-3z"/>
-                 </g>  
-              </g>
-            </svg>
-          </div>
-        </div>
-
-
-        <div style="width:150px; position:relative; top:-85px; height: 80px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
-
-        </div>
-
-
-        </div>
-      </div>
-
-      <!-- Intervention Line slider -->
-      <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:120px; left:10px; pointer-events: none">
-        <div style="
-            position: absolute;
-            top:-38px;
-            left:{xScaleTime(firstLine.time)}px;
-            visibility: {(xScaleTime(firstLine.time) < (width - padding.right)) ? 'visible':'hidden'};
-            width:2px;
-            background-color:#FFF;
-            border-right: 1px dashed black;
-            cursor:col-resize;
-            height:{height}px">
-            <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-              <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
-              <div class="paneltext"  style="height:20px; text-align: right">
-              <div class="paneldesc">to decrease transmission by<br></div>
-              </div>
-              <div style="pointer-events: all">
-              <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-firstLine.amount)).toFixed(2)}%</div>
-              <input class="range" type=range min=0 max=1 step=0.01 value={firstLine.om} on:mousedown={lock_yaxis} on:input={e=>onLineChange(e, 0)}>
-              </div>
-              </div>
-            </div>
-          </div>
-      </div>
-
-      {#each uiInterventionLines as interventionLine} 
+      {#each interventionLines as interventionLine} 
         <InterventionLine
           time={interventionLine.time}
           amount={interventionLine.amount}
@@ -1190,6 +1115,7 @@ function getInitialState() {
           drag_intervention={drag_intervention}
           onLineChange={onLineChange}
           onLineToggle={onLineToggle}
+          startDate={startDate}
         />
       {/each} 
 
@@ -1227,7 +1153,7 @@ function getInitialState() {
 <!-- Custom controls begin -->
 <div style="padding: 0 20px 40px; display: flex; justify-content: center; align-items: center;">
   <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
-  <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
+  <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
   <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
 </div>
 <!-- Custom controls end -->
