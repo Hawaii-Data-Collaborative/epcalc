@@ -158,7 +158,13 @@
         </div>
         <div style="pointer-events: all">
         <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-amount)).toFixed(2)}%</div>
-        <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:input={e=>onLineChange(e, index)}>
+          <input class="range" type=range min=0 max=1 step=0.01 list="rangeoptions" value={om} on:mousedown={lock_yaxis} on:input={e=>onLineChange(e, index)}>
+          <datalist id="rangeoptions">
+            <option value={0} label="2.5"></option>
+            <option value={0.28} label="1.8"></option>
+            <option value={0.52} label="1.2"></option>
+            <option value={0.68} label="0.8"></option>
+          </datalist>
         </div>
         
         <div style="width: 120px; color: #777; margin-top: 3px;">
