@@ -1093,7 +1093,7 @@ function getInitialState() {
               <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (staticLines[i-1] ? staticLines[i-1].amount*R0 : R0).toFixed(2) )}</span>
             </div> -->
             
-            <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc;">
+            <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc; pointer-events: none;">
               <div>{line.label}</div>
             </div>
           </div>
