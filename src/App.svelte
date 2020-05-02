@@ -59,17 +59,17 @@
   }
 
 
-  $: Time_to_death     = 32
+  $: Time_to_death     = 12.5 //32
   $: logN              = Math.log(1415872)
   $: N                 = Math.exp(logN)
-  $: I0                = 1
+  $: I0                = 10 //1
   $: R0                = 2.5 //2.2
   $: D_incbation       = 5.2       
-  $: D_infectious      = 2.9 
-  $: D_recovery_mild   = (14 - 2.9)  
-  $: D_recovery_severe = (31.5 - 2.9)
-  $: D_hospital_lag    = 5
-  $: D_death           = Time_to_death - D_infectious 
+  $: D_infectious      = 8 //2.9 
+  $: D_recovery_mild   = 11 //(14 - 2.9)  
+  $: D_recovery_severe = 13 //(31.5 - 2.9)
+  $: D_hospital_lag    = 6 //5
+  $: D_death           = 4.5 //Time_to_death - D_infectious 
   $: CFR               = 0.005 //0.02  
   $: InterventionTime  = 100  
   $: OMInterventionAmt = 2/3
