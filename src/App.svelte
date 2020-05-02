@@ -65,20 +65,20 @@
   $: N                 = Math.exp(logN)
   $: I0                = 10 //1
   $: R0                = 2.5 //2.2
-  $: D_incbation       = 5.2       
+  $: D_incbation       = 4.1 //5.2       
   $: D_infectious      = 8 //2.9 
   $: D_recovery_mild   = 11 //(14 - 2.9)  
   $: D_recovery_severe = 13 //(31.5 - 2.9)
   $: D_hospital_lag    = 6 //5
   $: D_death           = 4.5 //Time_to_death - D_infectious 
-  $: CFR               = 0.005 //0.02  
+  $: CFR               = 0.059 //0.005 //0.02  
   $: InterventionTime  = 100  
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 2
-  $: P_SEVERE          = 0.045 //0.2
+  $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
   
   $: interventionLines = [{
