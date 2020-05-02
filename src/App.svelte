@@ -12,8 +12,8 @@
   import InterventionLine from './InterventionLine.svelte';
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
-
   import katex from 'katex';
+  import {differenceInCalendarDays} from 'date-fns'
 
   const legendheight = 67 
 
@@ -63,7 +63,7 @@
   $: logN              = Math.log(1415872)
   $: N                 = Math.exp(logN)
   $: I0                = 1
-  $: R0                = 2.2
+  $: R0                = 2.5 //2.2
   $: D_incbation       = 5.2       
   $: D_infectious      = 2.9 
   $: D_recovery_mild   = (14 - 2.9)  
@@ -88,15 +88,57 @@
   }]
 
   $: uiInterventionLines = interventionLines.slice(1)
-
   $: firstLine = interventionLines[0]
-
-  $: stayAtHomeLine = {
-    time: 17, // First case March 6, stay home order March 23
-    amount: 1.8 / R0 // Rt 1.8
-  }
-
   $: activeIndex = -1
+
+  $: startDate = new Date('2020-03-06')
+  $: staticLines = [
+    {
+      time: differenceInCalendarDays(startDate, startDate), 
+      amount: R0 / R0, // Rt=R0
+      label: '3/6: First case in Hawaii'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-03-16'), startDate), 
+      amount: 2.45 / R0, // Rt 2.45
+      label: '3/16: Spring break'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-03-18'), startDate), 
+      amount: 2.4 / R0, // Rt 2.4
+      label: '3/18: Restaurants close'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-03-26'), startDate), 
+      amount: 1.8 / R0, // Rt 1.8
+      label: '3/26: Stay home order'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-04-01'), startDate), 
+      amount: 1.2 / R0, // Rt 1.2
+      label: '4/1: Interisland ban'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-04-14'), startDate), 
+      amount: 1.0 / R0, // Rt 1.0
+      label: '4/14: Widespread mask use'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-04-23'), startDate), 
+      amount: 0.95 / R0, // Rt 0.95
+      label: '4/23: More strict mask use'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-05-01'), startDate), 
+      amount: 0.9 / R0, // Rt 0.9
+      label: '5/1: Heat/humidity effects'
+    },
+    {
+      time: differenceInCalendarDays(new Date('2020-05-31'), startDate), 
+      amount: 1.8 / R0, // Rt 1.8
+      label: '5/31: Potential phased reopening'
+    }
+  ]
 
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
                "logN":logN,
@@ -238,7 +280,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, [stayAtHomeLine, ...interventionLines], duration)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, [...staticLines, ...interventionLines], duration)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -803,6 +845,16 @@ function getInitialState() {
     outline: none;
     border-color: #00f8;
   }
+
+  .static-line .dottedline * {
+    visibility: hidden;
+  }
+  .static-line .dottedline:hover * {
+    visibility: visible;
+  }
+  .static-line .dottedline:hover {
+    border-right-color: #000 !important;
+  }
 </style>
 
 <h2>Epidemic Calculator</h2>
@@ -1012,31 +1064,34 @@ function getInitialState() {
                   cursor:row-resize">
       </div>
 
-      <!-- Stay home order intervention line -->
-      <div class="stayhome" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-        <div id="fixeddottedline"  style="pointer-events: all;
-                    position: absolute;
-                    top:-38px;
-                    left:{xScaleTime(stayAtHomeLine.time)}px;
-                    width:2px;
-                    background-color:#FFF;
-                    border-right: 1px dashed #0003;
-                    pointer-events: all;
-                    height:{height+19}px">
+      <!-- Static intervention lines -->
+      {#each staticLines as line, i}
+        <div class="static-line" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+          <div class="dottedline"  style="pointer-events: all;
+                      position: absolute;
+                      top:-19px;
+                      left:{xScaleTime(line.time)}px;
+                      width:2px;
+                      background-color:#FFF;
+                      border-right: 1px dashed #0003;
+                      pointer-events: all;
+                      height:{height}px">
 
-          <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px;">
-            <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*stayAtHomeLine.amount).toFixed(2) )}</span> ⟶ 
-          </div>
+            <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px; z-index: 1; background: #fffc;">
+              <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*line.amount).toFixed(2) )}</span> ⟶ 
+            </div>
 
-          <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px">
-            <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
-          </div>
-          
-          <div class="caption" style="position: absolute; top: 105px; left: -3px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap;">
-            <div style="transform: rotate(-90deg);">March 23: stay-at-home order</div>
+            <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px z-index: 1; background: #fffc;">
+              <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (staticLines[i-1] ? staticLines[i-1].amount*R0 : R0).toFixed(2) )}</span>
+            </div>
+            
+            <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc;">
+              <div>{line.label}</div>
+            </div>
           </div>
         </div>
-      </div>
+      {/each}
+      
 
       <!-- Intervention Line -->
       <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
@@ -1165,7 +1220,7 @@ function getInitialState() {
 <div style="padding: 0 20px 40px; display: flex; justify-content: center; align-items: center;">
   <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
   <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{uiInterventionLines.length === 0 ? 'disabled' : ''}">-</button>
-  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{uiInterventionLines.length >= 5 ? 'disabled' : ''}">+</button>
+  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
 </div>
 <!-- Custom controls end -->
 
