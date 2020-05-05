@@ -7,10 +7,12 @@
   import { selectAll } from 'd3-selection'
   import katex from 'katex';
   import { addDays, format as dateFormat } from 'date-fns'
+  import { RtLevels, RtOmLevels } from './constants'
 
   export let time
   export let amount
   export let om
+  export let canDrag=true
   export let width
   export let height
   export let index
@@ -28,11 +30,6 @@
     .domain([0, tmax])
     .range([padding.left, width - padding.right]);
 
-
-  function onDottedLineClick() {
-    debugger
-  }
-
   function math_inline(str) {
     return katex.renderToString(str, {
     throwOnError: false,
@@ -42,8 +39,10 @@
   }
 
   onMount(() => {
-    var drag_callback_intervention = drag_intervention(index)
-    drag_callback_intervention(selectAll(`#dottedline-${index}`))
+    if (canDrag) {
+      var drag_callback_intervention = drag_intervention(index)
+      drag_callback_intervention(selectAll(`#dottedline-${index}`))
+    }
   })
 
 </script>
@@ -99,34 +98,58 @@
     line-height: 14px;
   }
 
+  .select-rt {
+    margin-top: 3px;
+  }
+  .select-rt:focus {
+    outline: none;
+  }
+
+  .dottedline {
+    pointer-events: all;
+    position: absolute;
+    top:-20px;
+    width:2px;
+    background-color:#FFF;
+    border-right: 1px dashed black;
+  }
+  .popup {
+    background: #fff; 
+    z-index: 2; 
+    flex: 0 0 160px; 
+    width:120px; 
+    position: relative; 
+    top: -83px; 
+    height: 79px; 
+    padding-right: 7px; 
+    left: -126px; 
+  }
+  .dottedline:not(.nodrag),
+  .popup:not(.nodrag) {
+    pointer-events: all;
+    cursor:col-resize;
+  }
+  .nodrag .drag-handle {
+    display: none;
+  }
 </style>
 
 <!-- Dotted line -->
 <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-  <div id="dottedline-{index}" class="dottedline"  style="pointer-events: all;
-              position: absolute;
-              top:-20px;
-              left:{xScaleTime(time)}px;
-              visibility: {(xScaleTime(time) < (width - padding.right)) ? 'visible':'hidden'};
-              width:2px;
-              background-color:#FFF;
-              border-right: 1px dashed black;
-              pointer-events: all;
-              cursor:col-resize;
-              height:{height}px">
+  <div id="dottedline-{index}" class="dottedline {canDrag===false ? 'nodrag' : ''}"  style="left:{xScaleTime(time)}px; visibility: {(xScaleTime(time) < (width - padding.right)) ? 'visible':'hidden'}; height:{height}px">
   
   <div on:click={() => onLineToggle(index)} class="caption" style="position: absolute; top: 15px; left: 0; transform: translateX(-50%); background: #fffa; font-size: 12px; color: {show ? '#111' : '#777'}; cursor: pointer; user-select: none; z-index: 1; padding: 1px 4px;">toggle</div>
 
-  <div id="shadow2" style="display: {show ? '' : 'none'}; background: #fff; z-index: 1; position: absolute; width: 300px; height: 108px; top: -98px; left: -126px; box-shadow: 0px 0px 20px 1px #0001;"></div>
+  <div class="shadow" style="display: {show ? '' : 'none'}; background: #fff; z-index: 1; position: absolute; width: 315px; height: 108px; top: -98px; left: -126px; box-shadow: 0px 0px 20px 1px #0001;"></div>
 
-  <div id="interventionDrag2" class="legendtext" style="display: {show ? '' : 'none'}; background: #fff; z-index: 2; flex: 0 0 160px; width:120px; position:relative;  top:-83px; height: 79px; padding-right: 7px; left: -126px; pointer-events: all;cursor:col-resize;" >
+  <div id="interventionDrag2" class="popup legendtext {canDrag===false ? 'nodrag' : ''}" style="display: {show ? '' : 'none'};" >
     <div class="paneltitle" style="top:2px; position: relative; text-align: right;">
       Intervention {index+1} on day {format("d")(time)}
       <span style="font-weight:normal">({dateFormat(addDays(startDate, time), 'M/d/yy')})</span>
     </div>
-    <span></span><div style="top:9px; position: relative; text-align: right">
-    (drag me)</div>
-    <div style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
+    <span></span>
+    <div class="drag-handle" style="top:9px; position: relative; text-align: right">(drag me)</div>
+    <div class="drag-handle" style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
       <svg width="20" height="20">
         <g transform="rotate(90)">
           <g transform="translate(0,-20)">
@@ -158,14 +181,14 @@
         </div>
         <div style="pointer-events: all">
         <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-amount)).toFixed(2)}%</div>
-          <input class="range" type=range min=0 max=1 step=0.01 list="rangeoptions" value={om} on:mousedown={lock_yaxis} on:input={e=>onLineChange(e, index)}>
-          <datalist id="rangeoptions">
-            <option value={0} label="2.5"></option>
-            <option value={0.28} label="1.8"></option>
-            <option value={0.52} label="1.2"></option>
-            <option value={0.68} label="0.8"></option>
-          </datalist>
-        </div>
+        <!-- <input class="range" type=range min=0 max=1 step=0.01 list="rangeoptions" value={om} on:mousedown={lock_yaxis}> -->
+        <select value={om} class="select-rt" on:change={e=>onLineChange(e, index)}>
+          <option value={0}></option>
+          <option value={RtOmLevels.PREPARE}>Level 1 • Prepare • Rt={RtLevels.PREPARE}</option>
+          <option value={RtOmLevels.REDUCE}>Level 2 • Reduce • Rt={RtLevels.REDUCE}</option>
+          <option value={RtOmLevels.SEVERE}>Level 3 • Severe • Rt={RtLevels.SEVERE}</option>
+        </select>
+      </div>
         
         <div style="width: 120px; color: #777; margin-top: 3px;">
           <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*amount).toFixed(2) )}</span> ⟶ 

@@ -13,10 +13,13 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import { differenceInCalendarDays, addDays, format as dateFormat } from 'date-fns'
+  import { differenceInCalendarDays, addDays, addMonths, startOfMonth, endOfMonth, format as dateFormat } from 'date-fns'
   import _ from 'lodash'
+  import { RtLevels, RtOmLevels } from './constants'
 
   const legendheight = 67 
+
+  let showControls = false
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -64,7 +67,7 @@
   $: logN              = Math.log(1415872)
   $: N                 = Math.exp(logN)
   $: I0                = 10 //1
-  $: R0                = 2.5 //2.2
+  let R0               = 2.5 //2.2
   $: D_incbation       = 4.1 //5.2       
   $: D_infectious      = 8 //2.9 
   $: D_recovery_mild   = 11 //(14 - 2.9)  
@@ -81,18 +84,8 @@
   $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
   
-  $: interventionLines = [{
-    time: 100, //InterventionTime,
-    amount: 1 - 2/3, //InterventionAmt,
-    om: 2/3, //OMInterventionAmt,
-    index: 0
-  }]
-
-  $: firstLine = interventionLines[0]
-  $: activeIndex = 0
-
-  $: startDate = new Date('2020-03-06')
-  $: staticLines = [
+  const startDate = new Date('2020-03-06')
+  let staticLines = [
     {
       time: differenceInCalendarDays(startDate, startDate), 
       amount: R0 / R0, // Rt=R0
@@ -133,12 +126,24 @@
       amount: 0.9 / R0, // Rt 0.9
       label: '5/1: Heat/humidity effects'
     },
-    {
-      time: differenceInCalendarDays(new Date('2020-05-31'), startDate), 
-      amount: 1.8 / R0, // Rt 1.8
-      label: '5/31: Potential phased reopening'
-    }
+    // {
+    //   time: differenceInCalendarDays(new Date('2020-05-31'), startDate), 
+    //   amount: 1.2 / R0, // Rt 1.2
+    //   label: '5/31: Potential phased reopening'
+    // }
   ]
+
+  let interventionLines = [{
+    time: differenceInCalendarDays(endOfMonth(new Date()), startDate),
+    amount: 1.2 / R0,
+    om: 0.52,
+    index: 0,
+    canDrag: false,
+    label: '5/31: Potential phased reopening'
+  }]
+
+  $: firstLine = interventionLines[0]
+  $: activeIndex = 0
 
   $: sortedInterventionLines = _.sortBy([...staticLines, ...interventionLines], 'time')
 
@@ -390,10 +395,13 @@ function getInitialState() {
     interventionLines = [
       ...interventionLines,
       {
-        time: last.time + 30,
-        om: last.om,
-        amount: last.amount,
-        index: index
+        time: interventionLines.length === 1 ? 
+          differenceInCalendarDays(startOfMonth(addMonths(new Date(), 2)), startDate) : 
+          differenceInCalendarDays(addMonths(addDays(startDate, last.time), 1), startDate),
+        om: interventionLines.length === 1 ? RtOmLevels.SEVERE : RtOmLevels.REDUCE,
+        amount: interventionLines.length === 1 ? RtLevels.SEVERE : RtLevels.REDUCE,
+        index: index,
+        canDrag: true
       }
     ]
 
@@ -798,6 +806,21 @@ function getInitialState() {
   .btn-primary:not(:disabled):active {
     background: #2c60a5;
   }
+  .btn-plain {
+    background: #fff;
+    color: #386cb0;
+    border: 1px solid #386cb0;
+  }
+  .btn-plain:not(:disabled):hover {
+    background: #fbfbfb;
+    color: #3265aa;
+    border-color: #3265aa;
+  }
+  .btn-plain:not(:disabled):active {
+    background: #f5f5f5;
+    color: #2c60a5;
+    border-color: #2c60a5;
+  }
   .btn-remove {
     background: #f00a;
   }
@@ -861,35 +884,26 @@ function getInitialState() {
   .static-line .dottedline:hover {
     border-right-color: #000 !important;
   }
+
+  .scenario-wrapper {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-width: 980px;
+    margin: auto;
+    box-sizing: border-box;
+  }
+
+  .controls-toggle {
+    max-width: 980px;
+    margin: auto;
+    padding: 5px 20px;
+    box-sizing: border-box;
+  }
 </style>
 
 <h2>Epidemic Calculator</h2>
-
-<!-- Custom controls begin -->
-<div style="padding: 0 20px 40px; display: flex; justify-content: center;">
-  <div class="scenario-section" style="display: flex; border: 1px solid #eee;">
-    <div class="list" style="border-right: 1px solid #eee; min-width: 200px;">
-      <div class="list-header" style="font-weight: bold; font-size: 16px; padding: 3px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
-        <span style="margin-right: 10px;">Scenarios</span>
-        <button on:click={onAddScenarioClick} class="btn btn-primary btn-icon btn-add">+</button>
-      </div>
-      <div class="scenario-list">
-        {#each scenarios as s}
-          <div class="scenario-list-item {s.id === scenario.id ? 'active' : ''}" on:click={()=> onScenarioClick(s)}>{s.name}</div>
-        {/each}
-      </div>
-    </div>
-    <div class="detail" style="padding: 10px;">
-      <div><input id="scenario-name" type="text" value={scenario.name} on:input={onNameChange} style="margin-right: 15px"></div>
-      <div style="margin-top: 10px"><button on:click={onDeleteScenarioClick} class="btn btn-remove btn-text">Delete scenario</button></div>
-      <!-- <div style="margin-top: 20px">
-        <div><button on:click={onSaveClick} class="btn btn-text btn-primary save">Save session</button></div>
-        <div style="margin-top: 10px"><button on:click={onResetClick} class="btn btn-text btn-primary reset">Clear session</button></div>
-      </div> -->
-    </div>
-  </div>
-</div>
-<!-- Custom controls end -->
 
 <div class="chart" style="display: flex; max-width: 1120px">
 
@@ -1106,6 +1120,8 @@ function getInitialState() {
           amount={interventionLine.amount}
           om={interventionLine.om}
           index={interventionLine.index}
+          canDrag={interventionLine.canDrag}
+          label={interventionLine.label}
           show={interventionLine.index === activeIndex}
           width={width}
           height={height}
@@ -1151,232 +1167,110 @@ function getInitialState() {
 </div>
 
 <!-- Custom controls begin -->
-<div style="padding: 0 20px 40px; display: flex; justify-content: center; align-items: center;">
-  <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
-  <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
-  <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
+<div class="scenario-wrapper">
+  <div class="scenario-section" style="display: flex; border: 1px solid #eee;">
+    <div class="list" style="border-right: 1px solid #eee; min-width: 200px;">
+      <div class="list-header" style="font-weight: bold; font-size: 16px; padding: 3px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
+        <span style="margin-right: 10px;">Scenarios</span>
+        <button on:click={onAddScenarioClick} class="btn btn-primary btn-icon btn-add">+</button>
+      </div>
+      <div class="scenario-list">
+        {#each scenarios as s}
+          <div class="scenario-list-item {s.id === scenario.id ? 'active' : ''}" on:click={()=> onScenarioClick(s)}>{s.name}</div>
+        {/each}
+      </div>
+    </div>
+    <div class="detail" style="padding: 10px;">
+      <div><input id="scenario-name" type="text" value={scenario.name} on:input={onNameChange} style="margin-right: 15px"></div>
+      <div style="margin-top: 10px"><button on:click={onDeleteScenarioClick} class="btn btn-remove btn-text">Delete scenario</button></div>
+      <!-- <div style="margin-top: 20px">
+        <div><button on:click={onSaveClick} class="btn btn-text btn-primary save">Save session</button></div>
+        <div style="margin-top: 10px"><button on:click={onResetClick} class="btn btn-text btn-primary reset">Clear session</button></div>
+      </div> -->
+    </div>
+  </div>
+
+  <div style="margin-left: 10px; display: flex; justify-content: center; align-items: center;">
+    <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
+    <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
+    <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
+  </div>
 </div>
 <!-- Custom controls end -->
 
-<div style="height:220px;">
-  <div class="minorTitle">
-    <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Transmission Dynamics</div>
-    <div style="flex: 0 0 20; width:20px"></div>
-    <div style="margin: 0px 4px 5px 0px" class="minorTitleColumn">Clinical Dynamics</div>
-  </div>
-  <div class = "row">
-
-    <div class="column">
-      <div class="paneltitle">Population Inputs</div>
-      <div class="paneldesc" style="height:30px">Size of population.<br></div>
-      <div class="slidertext">{format(",")(Math.round(N))}</div>
-      <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01>
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Number of initial infections.<br></div>
-      <div class="slidertext">{I0}</div>
-      <input class="range" type=range bind:value={I0} min={1} max=10000 step=1>
+<div class="controls-toggle">
+  <button class="btn btn-plain btn-text" on:click={() => showControls = !showControls}>{showControls ? 'Hide' : 'Show'} inputs</button>
+</div>
+{#if showControls}
+  <div style="height:220px;">
+    <div class="minorTitle">
+      <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Transmission Dynamics</div>
+      <div style="flex: 0 0 20; width:20px"></div>
+      <div style="margin: 0px 4px 5px 0px" class="minorTitleColumn">Clinical Dynamics</div>
     </div>
+    <div class = "row">
 
-    <div class="column">
-      <div class="paneltext">
-      <div class="paneltitle">Basic Reproduction Number {@html math_inline("\\mathcal{R}_0")} </div>
-      <div class="paneldesc">Measure of contagiousness: the number of secondary infections each infected individual produces. <br></div>
+      <div class="column">
+        <div class="paneltitle">Population Inputs</div>
+        <div class="paneldesc" style="height:30px">Size of population.<br></div>
+        <div class="slidertext">{format(",")(Math.round(N))}</div>
+        <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01>
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Number of initial infections.<br></div>
+        <div class="slidertext">{I0}</div>
+        <input class="range" type=range bind:value={I0} min={1} max=10000 step=1>
       </div>
-      <div class="slidertext">{R0}</div>
-      <input class="range" type=range bind:value={R0} min=0.01 max=10 step=0.01> 
-    </div> 
 
-    <div class="column">
-      <div class="paneltitle">Transmission Times</div>
-      <div class="paneldesc" style="height:30px">Length of incubation period, {@html math_inline("T_{\\text{inc}}")}.<br></div>
-      <div class="slidertext">{(D_incbation).toFixed(2)} days</div>
-      <input class="range" style="margin-bottom: 8px"type=range bind:value={D_incbation} min={0.15} max=24 step=0.0001>
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Duration patient is infectious, {@html math_inline("T_{\\text{inf}}")}.<br></div>
-      <div class="slidertext">{D_infectious} Days</div>
-      <input class="range" type=range bind:value={D_infectious} min={0} max=24 step=0.01>
+      <div class="column">
+        <div class="paneltext">
+        <div class="paneltitle">Basic Reproduction Number {@html math_inline("\\mathcal{R}_0")} </div>
+        <div class="paneldesc">Measure of contagiousness: the number of secondary infections each infected individual produces. <br></div>
+        </div>
+        <div class="slidertext">{R0}</div>
+        <input class="range" type=range bind:value={R0} min=0.01 max=10 step=0.01> 
+      </div> 
+
+      <div class="column">
+        <div class="paneltitle">Transmission Times</div>
+        <div class="paneldesc" style="height:30px">Length of incubation period, {@html math_inline("T_{\\text{inc}}")}.<br></div>
+        <div class="slidertext">{(D_incbation).toFixed(2)} days</div>
+        <input class="range" style="margin-bottom: 8px"type=range bind:value={D_incbation} min={0.15} max=24 step=0.0001>
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Duration patient is infectious, {@html math_inline("T_{\\text{inf}}")}.<br></div>
+        <div class="slidertext">{D_infectious} Days</div>
+        <input class="range" type=range bind:value={D_infectious} min={0} max=24 step=0.01>
+      </div>
+
+      <div style="flex: 0 0 20; width:20px"></div>
+
+      <div class="column">
+        <div class="paneltitle">Mortality Statistics</div>
+        <div class="paneldesc" style="height:30px">Case fatality rate.<br></div>
+        <div class="slidertext">{(CFR*100).toFixed(2)} %</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={CFR} min={0} max=1 step=0.0001>
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time from end of incubation to death.<br></div>
+        <div class="slidertext">{Time_to_death} Days</div>
+        <input class="range" type=range bind:value={Time_to_death} min={(D_infectious)+0.1} max=100 step=0.01>
+      </div>
+
+      <div class="column">
+        <div class="paneltitle">Recovery Times</div>
+        <div class="paneldesc" style="height:30px">Length of hospital stay<br></div>
+        <div class="slidertext">{D_recovery_severe} Days</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={D_recovery_severe} min={0.1} max=100 step=0.01>
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Recovery time for mild cases<br></div>
+        <div class="slidertext">{D_recovery_mild} Days</div>
+        <input class="range" type=range bind:value={D_recovery_mild} min={0.5} max=100 step=0.01>
+      </div>
+
+      <div class="column">
+        <div class="paneltitle">Care statistics</div>
+        <div class="paneldesc" style="height:30px">Hospitalization rate.<br></div>
+        <div class="slidertext">{(P_SEVERE*100).toFixed(2)} %</div>
+        <input class="range" style="margin-bottom: 8px"type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time to hospitalization.<br></div>
+        <div class="slidertext">{D_hospital_lag} Days</div>
+        <input class="range" type=range bind:value={D_hospital_lag} min={0.5} max=100 step=0.01>
+      </div>
+
     </div>
-
-    <div style="flex: 0 0 20; width:20px"></div>
-
-    <div class="column">
-      <div class="paneltitle">Mortality Statistics</div>
-      <div class="paneldesc" style="height:30px">Case fatality rate.<br></div>
-      <div class="slidertext">{(CFR*100).toFixed(2)} %</div>
-      <input class="range" style="margin-bottom: 8px" type=range bind:value={CFR} min={0} max=1 step=0.0001>
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time from end of incubation to death.<br></div>
-      <div class="slidertext">{Time_to_death} Days</div>
-      <input class="range" type=range bind:value={Time_to_death} min={(D_infectious)+0.1} max=100 step=0.01>
-    </div>
-
-    <div class="column">
-      <div class="paneltitle">Recovery Times</div>
-      <div class="paneldesc" style="height:30px">Length of hospital stay<br></div>
-      <div class="slidertext">{D_recovery_severe} Days</div>
-      <input class="range" style="margin-bottom: 8px" type=range bind:value={D_recovery_severe} min={0.1} max=100 step=0.01>
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Recovery time for mild cases<br></div>
-      <div class="slidertext">{D_recovery_mild} Days</div>
-      <input class="range" type=range bind:value={D_recovery_mild} min={0.5} max=100 step=0.01>
-    </div>
-
-    <div class="column">
-      <div class="paneltitle">Care statistics</div>
-      <div class="paneldesc" style="height:30px">Hospitalization rate.<br></div>
-      <div class="slidertext">{(P_SEVERE*100).toFixed(2)} %</div>
-      <input class="range" style="margin-bottom: 8px"type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time to hospitalization.<br></div>
-      <div class="slidertext">{D_hospital_lag} Days</div>
-      <input class="range" type=range bind:value={D_hospital_lag} min={0.5} max=100 step=0.01>
-    </div>
-
   </div>
-</div>
-
-<div style="position: relative; height: 12px"></div>
-
-<p class = "center">
-At the time of writing, the coronavirus disease of 2019 remains a global health crisis of grave and uncertain magnitude. To the non-expert (such as myself), contextualizing the numbers, forecasts and epidemiological parameters described in the media and literature can be challenging. I created this calculator as an attempt to address this gap in understanding.
-</p>
-
-<p class = "center">
-This calculator implements a classical infectious disease model &mdash <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a> </b>(<b>S</b>usceptible → <span style="color:{colors[4]}"><b>E</b></span>xposed → <span style="color:{colors[3]}"><b>I</b></span>nfected → <span><b>R</b></span>emoved), an idealized model of spread still used in frontlines of research e.g. [<a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu, et. al</a>, <a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a>]. The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
-<span style="color:#777">{@html ode_eqn}</span>
-In addition to the transmission dynamics, this model allows the use of supplemental timing information to model the death rate and healthcare burden. 
-</p>
-
-<p class = "center">
-Note that one can use this calculator to measure one's risk exposure to the disease for any given day of the epidemic: the probability of getting infected on day {Math.round(indexToTime(active_))} given <a href="https://www.cdc.gov/coronavirus/2019-ncov/hcp/guidance-risk-assesment-hcp.html">close contact</a> with <input type="text" style="width:{Math.ceil(Math.log10(p_num_ind))*9.5 + 5}px; font-size: 15.5px; color:#777" bind:value={p_num_ind}> individuals is {((1-(Math.pow(1 - (Iters[active_][2])*(0.45/100), p_num_ind)))*100).toFixed(5)}% given an attack rate of 0.45% [<a href="https://www.cdc.gov/mmwr/volumes/69/wr/mm6909e1.htm?s_cid=mm6909e1_w">Burke et. al</a>].
-</p>
-
-
-<p class = "center">
-A sampling of the estimates for epidemic parameters are presented below:
-</p>
-
-<div class="center">
-<table style="width:100%; margin:auto; font-weight: 300; border-spacing: inherit">
-  <tr>
-    <th></th>
-    <th>Location</th>
-    <th>Reproduction Number<br> {@html math_inline("\\mathcal{R}_0")}</th>
-    <th>Incubation Period<br> {@html math_inline("T_{\\text{inc}}")} (in days)</th>
-    <th>Infectious Period<br> {@html math_inline("T_{\\text{inf}}")} (in days)</th>
-  </tr>
-  <tr>
-    <td width="27%"><a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a></td>
-    <td>Wuhan </td>    
-    <td>3.0 (1.5 — 4.5)</td>
-    <td>5.2</td>
-    <td>2.9</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.nejm.org/doi/full/10.1056/NEJMoa2001316">Li, Leung and Leung</a></td>
-    <td>Wuhan </td>    
-    <td>2.2 (1.4 — 3.9)</td>
-    <td>5.2 (4.1 — 7.0)</td>
-    <td>2.3 (0.0 — 14.9)</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu et. al</a></td>
-    <td>Greater Wuhan </td>    
-    <td>2.68 (2.47 — 2.86)</td>
-    <td>6.1</td>
-    <td>2.3</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.who.int/news-room/detail/23-01-2020-statement-on-the-meeting-of-the-international-health-regulations-(2005)-emergency-committee-regarding-the-outbreak-of-novel-coronavirus-(2019-ncov)">WHO Initial Estimate</a></td>
-    <td>Hubei </td>    
-    <td>1.95 (1.4 — 2.5)</td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO-China Joint Mission </a></td>
-    <td>Hubei </td>    
-    <td>2.25 (2.0 — 2.5)</td>
-    <td>5.5 (5.0 - 6.0)</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.biorxiv.org/content/10.1101/2020.01.25.919787v2">Liu et. al </a></td>
-    <td>Guangdong</td>
-    <td>4.5 (4.4 — 4.6)</td>
-    <td>4.8 (2.2 — 7.4) </td>
-    <td>2.9 (0 — 5.9)</td>
-  </tr>
-  <tr>
-    <td><a href = "https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa030/5766334">Rocklöv, Sjödin and Wilder-Smith</a></td>
-    <td>Princess Diamond</td>
-    <td>14.8</td>
-    <td>5.0</td>
-    <td>10.0</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.5.2000062">Backer, Klinkenberg, Wallinga</a></td>
-    <td>Wuhan</td>
-    <td></td>
-    <td>6.5 (5.6 — 7.9)</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.medrxiv.org/content/10.1101/2020.01.23.20018549v2.article-info">Read et. al</a></td>
-    <td>Wuhan</td>
-    <td>3.11 (2.39 — 4.13)</td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.medrxiv.org/content/10.1101/2020.03.03.20028423v1">Bi et. al</a></td>
-    <td>Shenzhen</td>
-    <td></td>
-    <td>4.8 (4.2 — 5.4)</td>
-    <td>1.5 (0 — 3.4)</td>
-    <td></td>
-  </tr>
-
-  <tr>
-    <td><a href = "https://www.mdpi.com/2077-0383/9/2/462">Tang et. al</a></td>
-    <td>China</td>
-    <td>6.47 (5.71 — 7.23)</td>
-    <td></td>
-    <td></td>
-  </tr>
-
-</table>
-</div>
-
-
-<p class="center">
-See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa021/5735319">Liu et. al</a>] detailed survey of current estimates of the reproduction number. Parameters for the diseases' clinical characteristics are taken from the following <a href="https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO Report</a>. 
-</p>
-
-<p class="center">
-Please DM me feedback <a href="https://twitter.com/gabeeegoooh">here</a> or email me <a href="mailto:izmegabe@gmail.com">here</a>. My <a href="http://gabgoh.github.io/">website</a>.
-</p>
-
-<!-- 
-<p class="center">
-<a href="https://twitter.com/gabeeegoooh?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false"><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-</p> -->
-
-
-<p class = "center">
-<b> Model Details </b><br>
-The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution, subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i> (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive). Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values predicted by SEIR. Please refer to the source code for details. Note that we assume, for simplicity, that all fatalities come from hospitals, and that all fatal cases are admitted to hospitals immediately after the infectious period.
-</p>
-
-<p class = "center">
-<b> Acknowledgements </b><br>
-<a href = "https://enkimute.github.io/">Steven De Keninck</a> for RK4 Integrator. <a href="https://twitter.com/ch402">Chris Olah</a>, <a href="https://twitter.com/shancarter">Shan Carter
-</a> and <a href="https://twitter.com/ludwigschubert">Ludwig Schubert
-</a> wonderful feedback. <a href="https://twitter.com/NikitaJer">Nikita Jerschov</a> for improving clarity of text. Charie Huang for context and discussion.
-</p>
-
-<!-- Input data -->
-<div style="margin-bottom: 30px">
-
-  <div class="center" style="padding: 10px; margin-top: 3px; width: 925px">
-    <div class="legendtext">Export parameters:</div>
-    <form>
-      <textarea type="textarea" rows="1" cols="5000" style="white-space: nowrap;  overflow: auto; width:100%; text-align: left" id="fname" name="fname">{state}</textarea>
-    </form>
-  </div>
-</div>
+{/if}
