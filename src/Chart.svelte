@@ -200,7 +200,7 @@
     <g class="axis x-axis">
       {#each xScaleTime.ticks() as i}
         <g class="tick" transform="translate({xScaleTime(i)},{height})">
-          <text x="0" y="-4">{format(addDays(startDate, i+1), 'M/d')}</text>
+          <text x="0" y="-4">{format(addDays(startDate, i), 'M/d')}</text>
         </g>
       {/each}
     </g>

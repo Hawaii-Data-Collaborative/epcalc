@@ -13,12 +13,12 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import { differenceInCalendarDays, addDays, addMonths, startOfMonth, endOfMonth, format as dateFormat } from 'date-fns'
+  import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat } from 'date-fns'
   import _ from 'lodash'
   import { RtLevels, RtOmLevels } from './constants'
 
   const legendheight = 67 
-
+  const startDate = new Date('2020-03-06T00:00')
   let showControls = false
 
   function range(n){
@@ -67,7 +67,7 @@
   $: logN              = Math.log(1415872)
   $: N                 = Math.exp(logN)
   $: I0                = 10 //1
-  let R0               = 2.5 //2.2
+  $: R0                = 2.5 //2.2
   $: D_incbation       = 4.1 //5.2       
   $: D_infectious      = 8 //2.9 
   $: D_recovery_mild   = 11 //(14 - 2.9)  
@@ -84,45 +84,44 @@
   $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
   
-  const startDate = new Date('2020-03-06')
-  let staticLines = [
+  $: staticLines = [
     {
       time: differenceInCalendarDays(startDate, startDate), 
       amount: R0 / R0, // Rt=R0
       label: '3/6: First case in Hawaii'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-03-16'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-03-16T00:00'), startDate), 
       amount: 2.45 / R0, // Rt 2.45
       label: '3/16: Spring break'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-03-18'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-03-18T00:00'), startDate), 
       amount: 2.4 / R0, // Rt 2.4
       label: '3/18: Restaurants close'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-03-26'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-03-26T00:00'), startDate), 
       amount: 1.8 / R0, // Rt 1.8
       label: '3/26: Stay home order'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-04-01'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-04-01T00:00'), startDate), 
       amount: 1.2 / R0, // Rt 1.2
       label: '4/1: Interisland ban'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-04-14'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-04-14T00:00'), startDate), 
       amount: 1.0 / R0, // Rt 1.0
       label: '4/14: Widespread mask use'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-04-23'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-04-23T00:00'), startDate), 
       amount: 0.95 / R0, // Rt 0.95
       label: '4/23: More strict mask use'
     },
     {
-      time: differenceInCalendarDays(new Date('2020-05-01'), startDate), 
+      time: differenceInCalendarDays(new Date('2020-05-01T00:00'), startDate), 
       amount: 0.9 / R0, // Rt 0.9
       label: '5/1: Heat/humidity effects'
     },
@@ -133,8 +132,8 @@
     // }
   ]
 
-  let interventionLines = [{
-    time: differenceInCalendarDays(endOfMonth(new Date()), startDate),
+  $: interventionLines = [{
+    time: differenceInCalendarDays(startOfDay(endOfMonth(new Date())), startDate),
     amount: 1.2 / R0,
     om: 0.52,
     index: 0,
@@ -183,7 +182,8 @@ function setState(data) {
     time: Number(l.time),
     amount: Number(l.amount),
     om: Number(l.om),
-    index: Number(l.index)
+    index: Number(l.index),
+    canDrag: l.canDrag
   }))}
 }
 function setInitialState() {
@@ -399,7 +399,7 @@ function getInitialState() {
           differenceInCalendarDays(startOfMonth(addMonths(new Date(), 2)), startDate) : 
           differenceInCalendarDays(addMonths(addDays(startDate, last.time), 1), startDate),
         om: interventionLines.length === 1 ? RtOmLevels.SEVERE : RtOmLevels.REDUCE,
-        amount: interventionLines.length === 1 ? RtLevels.SEVERE : RtLevels.REDUCE,
+        amount: 1 - (interventionLines.length === 1 ? RtOmLevels.SEVERE : RtOmLevels.REDUCE),
         index: index,
         canDrag: true
       }
