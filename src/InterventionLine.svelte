@@ -181,7 +181,7 @@
         </div>
         <div style="pointer-events: all">
         <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-amount)).toFixed(2)}%</div>
-        <!-- <input class="range" type=range min=0 max=1 step=0.01 list="rangeoptions" value={om} on:mousedown={lock_yaxis}> -->
+        <!-- <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:change={e=> onLineChange(e, index)}> -->
         <select value={om} class="select-rt" on:change={e=>onLineChange(e, index)}>
           <option value={0}></option>
           <option value={RtOmLevels.PREPARE}>Level 1 • Prepare • Rt={RtLevels.PREPARE}</option>
