@@ -83,6 +83,10 @@
   $: dt                = 2
   $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
+
+  $: P_travel = 0.1
+  $: R_travel = 8
+  $: N_travel = 0
   
   $: staticLines = [
     {
@@ -195,7 +199,7 @@ function getInitialState() {
 
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
-  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration) {
+  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, P_travel, R_travel, N_travel) {
     var interpolation_steps = 40
     var steps = 110*interpolation_steps
     var dt = dt/interpolation_steps
@@ -206,6 +210,8 @@ function getInitialState() {
     var currentInterventionLine = interventionLines[0]
     var currentInterventionTime = currentInterventionLine.time
     var currentInterventionAmt = currentInterventionLine.amount
+
+    var I_prime = I0
 
     function f(t, x){
 
@@ -274,6 +280,8 @@ function getInitialState() {
         currentInterventionTime = currentInterventionLine.time
         currentInterventionAmt = currentInterventionLine.amount
       }
+
+      // N += N_travel*dt
     }
     return {"P": P, 
             "deaths": N*v[6], 
@@ -287,7 +295,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, P_travel, R_travel, N_travel)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -637,6 +645,13 @@ function getInitialState() {
     padding: 0px 5px 5px 0px;
     margin: 0px 5px 5px 5px;
     /*border-top: 2px solid #999*/
+  }
+
+  .travel-row .column {
+    max-width: 200px;
+  }
+  .travel-row .paneldesc {
+    padding-top: 10px;
   }
 
   .minorTitle {
@@ -1272,5 +1287,29 @@ function getInitialState() {
       </div>
 
     </div>
+
+    <div class="minorTitle">
+      <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
+    </div>
+    <div class="row travel-row">
+      <!-- <div class="column">
+        <div class="paneldesc" style="height:30px">Percentage of travel allowed compared to typical months.<br></div>
+        <div class="slidertext">{Math.round(P_travel*100)} %</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:30px">Number of months until travel returns to 100%.<br></div>
+        <div class="slidertext">{R_travel} Months</div>
+        <input class="range" type=range bind:value={R_travel} min={0} max={24} step={1}>
+      </div> -->
+      <div class="column">
+        <div class="paneldesc" style="height:30px">Number of infected, asymptomatic travelers entering the state per day.<br></div>
+        <!-- <div class="slidertext">{(N_travel*100).toFixed(2)} %</div> -->
+        <div class="slidertext">{Math.round(N_travel)}</div>
+        <!-- <input class="range" type=range bind:value={N_travel} min={0} max={0.1} step={0.001}> -->
+        <input class="range" type=range bind:value={N_travel} min={0} max={100} step={1}>
+      </div>
+    </div>
+
   </div>
 {/if}
