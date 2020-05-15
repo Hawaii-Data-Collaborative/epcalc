@@ -25,6 +25,8 @@
   export let onLineToggle
   export let startDate
 
+  const useSlider = window.location.search.indexOf('r0=slider') > -1
+
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
   $: xScaleTime = scaleLinear()
     .domain([0, tmax])
@@ -181,13 +183,16 @@
         </div>
         <div style="pointer-events: all">
         <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-amount)).toFixed(2)}%</div>
-        <!-- <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:change={e=> onLineChange(e, index)}> -->
-        <select value={om} class="select-rt" on:change={e=>onLineChange(e, index)}>
-          <option value={0}></option>
-          <option value={RtOmLevels.PREPARE}>Level 1 • Prepare • Rt={RtLevels.PREPARE}</option>
-          <option value={RtOmLevels.REDUCE}>Level 2 • Reduce • Rt={RtLevels.REDUCE}</option>
-          <option value={RtOmLevels.SEVERE}>Level 3 • Severe • Rt={RtLevels.SEVERE}</option>
-        </select>
+        {#if useSlider}
+          <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:input={e=> onLineChange(e, index)}>
+        {:else}
+          <select value={om} class="select-rt" on:change={e=>onLineChange(e, index)}>
+            <option value={0}></option>
+            <option value={RtOmLevels.PREPARE}>Level 1 • Prepare • Rt={RtLevels.PREPARE}</option>
+            <option value={RtOmLevels.REDUCE}>Level 2 • Reduce • Rt={RtLevels.REDUCE}</option>
+            <option value={RtOmLevels.SEVERE}>Level 3 • Severe • Rt={RtLevels.SEVERE}</option>
+          </select>
+        {/if}
       </div>
         
         <div style="width: 120px; color: #777; margin-top: 3px;">

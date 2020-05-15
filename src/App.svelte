@@ -22,6 +22,7 @@
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
   let showControls = false
+  const allowDownload = window.location.search.indexOf('csv=true') > -1
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -314,6 +315,32 @@ function getInitialState() {
   $: dIters         = Sol["dIters"]
   $: Pmax           = max(P, checked)
   $: lock           = false
+
+  const onDownloadCsvClick = () => {
+    try {
+      const data = _.zip(Sol.total_infected, Sol.Iters.map(arr => arr.join(',')), Sol.P.map(arr => arr.join(',')))
+      
+      let csv = window.json2csv.parse(data);
+      const rows = csv.split('\n')
+      rows[0] = '"Total infected", Iters, P'
+      csv = rows.join('\n')
+
+      // console.log(csv)
+
+      var a = document.createElement('a')
+      a.style.position = 'fixed'
+      a.style.left = '-10000px'
+      a.textContent = 'Download CSV'
+      a.download = 'epcalc.csv'
+      a.href = 'data:text/csv;charset=utf-8,' + escape(csv)
+      a.target = '_blank'
+      document.body.appendChild(a);
+      a.click()
+    } catch (err) {
+      console.error(err);
+    }
+
+  }
 
   var colors = [ "#386cb0", "#8da0cb", "#4daf4a", "#f0027f", "#fdc086"]
 
@@ -926,6 +953,8 @@ function getInitialState() {
     margin: auto;
     padding: 5px 20px;
     box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
   }
 </style>
 
@@ -1226,6 +1255,11 @@ function getInitialState() {
 
 <div class="controls-toggle">
   <button class="btn btn-plain btn-text" on:click={() => showControls = !showControls}>{showControls ? 'Hide' : 'Show'} inputs</button>
+  {#if allowDownload}
+    <button class="btn btn-plain btn-text" on:click={onDownloadCsvClick}>Download CSV</button>
+  {:else}
+    <span />
+  {/if}
 </div>
 {#if showControls}
   <div style="height:220px;">
