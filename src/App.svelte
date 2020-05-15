@@ -17,6 +17,8 @@
   import _ from 'lodash'
   import { RtLevels, RtOmLevels } from './constants'
 
+  const showTravelDynamics = window.location.search.indexOf('showTravel=true') > -1
+
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
   let showControls = false
@@ -228,7 +230,8 @@ function getInitialState() {
       
       var S        = x[0] // Susectable
       var E        = x[1] // Exposed
-      var I        = x[2] // Infectious 
+      // var I     = x[2] // Infectious 
+      var I        = x[2] + (N_travel/N) // Infectious 
       var Mild     = x[3] // Recovering (Mild)     
       var Severe   = x[4] // Recovering (Severe at home)
       var Severe_H = x[5] // Recovering (Severe in hospital)
@@ -243,7 +246,12 @@ function getInitialState() {
 
       var dS        = -beta*I*S
       var dE        =  beta*I*S - a*E
+
       var dI        =  a*E - gamma*I
+      // var dI     =  a*E - gamma*(I+(N_travel/N))
+      // var dI     =  E/D_incbation - I/D_infectious
+      // var dI     =  E/D_incbation - (I/D_infectious + I_Trav/D_infectious)
+
       var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
       var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
       var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H
@@ -647,6 +655,9 @@ function getInitialState() {
     /*border-top: 2px solid #999*/
   }
 
+  .travel-row {
+    padding-bottom: 20px;
+  }
   .travel-row .column {
     max-width: 200px;
   }
@@ -1288,28 +1299,30 @@ function getInitialState() {
 
     </div>
 
-    <div class="minorTitle">
-      <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
-    </div>
-    <div class="row travel-row">
-      <!-- <div class="column">
-        <div class="paneldesc" style="height:30px">Percentage of travel allowed compared to typical months.<br></div>
-        <div class="slidertext">{Math.round(P_travel*100)} %</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
+    {#if showTravelDynamics}
+      <div class="minorTitle">
+        <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
       </div>
-      <div class="column">
-        <div class="paneldesc" style="height:30px">Number of months until travel returns to 100%.<br></div>
-        <div class="slidertext">{R_travel} Months</div>
-        <input class="range" type=range bind:value={R_travel} min={0} max={24} step={1}>
-      </div> -->
-      <div class="column">
-        <div class="paneldesc" style="height:30px">Number of infected, asymptomatic travelers entering the state per day.<br></div>
-        <!-- <div class="slidertext">{(N_travel*100).toFixed(2)} %</div> -->
-        <div class="slidertext">{Math.round(N_travel)}</div>
-        <!-- <input class="range" type=range bind:value={N_travel} min={0} max={0.1} step={0.001}> -->
-        <input class="range" type=range bind:value={N_travel} min={0} max={100} step={1}>
+      <div class="row travel-row">
+        <!-- <div class="column">
+          <div class="paneldesc" style="height:30px">Percentage of travel allowed compared to typical months.<br></div>
+          <div class="slidertext">{Math.round(P_travel*100)} %</div>
+          <input class="range" style="margin-bottom: 8px" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
+        </div>
+        <div class="column">
+          <div class="paneldesc" style="height:30px">Number of months until travel returns to 100%.<br></div>
+          <div class="slidertext">{R_travel} Months</div>
+          <input class="range" type=range bind:value={R_travel} min={0} max={24} step={1}>
+        </div> -->
+        <div class="column">
+          <div class="paneldesc" style="height:30px">Number of infected, asymptomatic travelers entering the state per day.<br></div>
+          <!-- <div class="slidertext">{(N_travel*100).toFixed(2)} %</div> -->
+          <div class="slidertext">{Math.round(N_travel)}</div>
+          <!-- <input class="range" type=range bind:value={N_travel} min={0} max={0.1} step={0.001}> -->
+          <input class="range" type=range bind:value={N_travel} min={0} max={50} step={1}>
+        </div>
       </div>
-    </div>
+    {/if}
 
   </div>
 {/if}
