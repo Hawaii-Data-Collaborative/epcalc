@@ -18,11 +18,13 @@
   import { RtLevels, RtOmLevels } from './constants'
 
   const showTravelDynamics = window.location.search.indexOf('showTravel=true') > -1
+  const showRtControls = window.location.search.indexOf('showRtControls=true') > -1
+  const useSlider = window.location.search.indexOf('r0=slider') > -1
+  const allowDownload = window.location.search.indexOf('csv=true') > -1
 
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
   let showControls = false
-  const allowDownload = window.location.search.indexOf('csv=true') > -1
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -90,6 +92,15 @@
   $: P_travel = 0.1
   $: R_travel = 8
   $: N_travel = 0
+
+  $: rtLevel1 = 0.28
+  $: rtLevel2 = 0.52
+  $: rtLevel3 = 0.66
+  $: rtOptions = [
+    { om: rtLevel1, amount: (R0*(1-rtLevel1)).toFixed(2), decrease: (100*(1-(1-rtLevel1))).toFixed(2) },
+    { om: rtLevel2, amount: (R0*(1-rtLevel2)).toFixed(2), decrease: (100*(1-(1-rtLevel2))).toFixed(2) },
+    { om: rtLevel3, amount: (R0*(1-rtLevel3)).toFixed(2), decrease: (100*(1-(1-rtLevel3))).toFixed(2) },
+  ]
   
   $: staticLines = [
     {
@@ -144,6 +155,7 @@
     amount: 1.2 / R0,
     om: 0.52,
     index: 0,
+    rtIndex: 1,
     canDrag: false,
     label: '5/31: Potential phased reopening'
   }]
@@ -431,15 +443,18 @@ function getInitialState() {
   function onAddLineClick() {
     var last = interventionLines[interventionLines.length-1] || { time: 100, om: 2/3, amount: 1/3, index: 0 }
     var index = interventionLines.length
+    var rtIndex = interventionLines.length === 1 ? 2 : 1
+    var rtOption = rtOptions[rtIndex]
     interventionLines = [
       ...interventionLines,
       {
         time: interventionLines.length === 1 ? 
           differenceInCalendarDays(startOfMonth(addMonths(new Date(), 2)), startDate) : 
           differenceInCalendarDays(addMonths(addDays(startDate, last.time), 1), startDate),
-        om: interventionLines.length === 1 ? RtOmLevels.SEVERE : RtOmLevels.REDUCE,
-        amount: 1 - (interventionLines.length === 1 ? RtOmLevels.SEVERE : RtOmLevels.REDUCE),
+        om: rtOption.om,
+        amount: 1 - rtOption.om,
         index: index,
+        rtIndex: rtIndex, 
         canDrag: true
       }
     ]
@@ -452,16 +467,40 @@ function getInitialState() {
     interventionLines = interventionLines
   }
 
-  function onLineChange(e, index) {
+  function onLineChange(e, index, useDynamicRt) {
     var line = interventionLines[index]
     line.om = Number(e.target.value)
     line.amount = 1 - line.om
+
+    if (useDynamicRt) {
+      var rtOption = rtOptions.find(o=>o.om===line.om)
+      if (rtOption) {
+        line.rtIndex = rtOptions.indexOf(rtOption)
+      }
+    }
 
     interventionLines = interventionLines
   }
 
   function onLineToggle(index) {
     activeIndex = activeIndex === index ? -1 : index
+  }
+
+  function updateInterventionLines() {
+    if (useSlider) {
+      return
+    }
+
+    interventionLines = interventionLines.map(line => {
+      var rtOption = rtOptions[line.rtIndex]
+      if (!rtOption) return line
+
+      return {
+        ...line,
+        om: rtOption.om,
+        amount: 1 - rtOption.om
+      }
+    })
   }
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
@@ -1183,6 +1222,8 @@ function getInitialState() {
           onLineChange={onLineChange}
           onLineToggle={onLineToggle}
           startDate={startDate}
+          rtOptions={rtOptions}
+          useSlider={useSlider}
         />
       {/each} 
 
@@ -1328,6 +1369,29 @@ function getInitialState() {
       </div>
 
     </div>
+
+    {#if showRtControls}
+      <div class="minorTitle">
+        <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Rt Controls</div>
+      </div>
+      <div class="row travel-row">
+        <div class="column">
+          <div class="paneldesc" style="height:20px">Level 1 • Prepare • Rt={(R0*(1-rtLevel1)).toFixed(2)}<br></div>
+          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel1))).toFixed(2)}%</div>
+          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel1} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+        </div>
+        <div class="column">
+          <div class="paneldesc" style="height:20px">Level 2 • Reduce • Rt={(R0*(1-rtLevel2)).toFixed(2)}<br></div>
+          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel2))).toFixed(2)}%</div>
+          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel2} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+        </div>
+        <div class="column">
+          <div class="paneldesc" style="height:20px">Level 3 • Severe • Rt={(R0*(1-rtLevel3)).toFixed(2)}<br></div>
+          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel3))).toFixed(2)}%</div>
+          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel3} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+        </div>
+      </div>
+    {/if}
 
     {#if showTravelDynamics}
       <div class="minorTitle">
