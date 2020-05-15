@@ -214,8 +214,6 @@ function getInitialState() {
     var currentInterventionTime = currentInterventionLine.time
     var currentInterventionAmt = currentInterventionLine.amount
 
-    var I_prime = I0
-
     function f(t, x){
 
       // SEIR ODE
@@ -289,8 +287,6 @@ function getInitialState() {
         currentInterventionTime = currentInterventionLine.time
         currentInterventionAmt = currentInterventionLine.amount
       }
-
-      // N += N_travel*dt
     }
     return {"P": P, 
             "deaths": N*v[6], 
