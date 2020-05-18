@@ -142,7 +142,7 @@
   
   <div on:click={() => onLineToggle(index)} class="caption" style="position: absolute; top: 15px; left: 0; transform: translateX(-50%); background: #fffa; font-size: 12px; color: {show ? '#111' : '#777'}; cursor: pointer; user-select: none; z-index: 1; padding: 1px 4px;">toggle</div>
 
-  <div class="shadow" style="display: {show ? '' : 'none'}; background: #fff; z-index: 1; position: absolute; width: 315px; height: 108px; top: -98px; left: -126px; box-shadow: 0px 0px 20px 1px #0001;"></div>
+  <div class="shadow" style="display: {show ? '' : 'none'}; background: #fff; z-index: 1; position: absolute; width: 335px; height: 108px; top: -98px; left: -126px; box-shadow: 0px 0px 20px 1px #0001;"></div>
 
   <div id="interventionDrag2" class="popup legendtext {canDrag===false ? 'nodrag' : ''}" style="display: {show ? '' : 'none'};" >
     <div class="paneltitle" style="top:2px; position: relative; text-align: right;">
@@ -187,10 +187,11 @@
           <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:input={e=> onLineChange(e, index, true)}>
         {:else}
           <select value={om} class="select-rt" on:change={e=>onLineChange(e, index, true)}>
-            <option value={0}></option>
-            <option value={rtOptions[0].om}>Level 1 • Prepare • Rt={rtOptions[0].amount}</option>
-            <option value={rtOptions[1].om}>Level 2 • Reduce • Rt={rtOptions[1].amount}</option>
-            <option value={rtOptions[2].om}>Level 3 • Severe • Rt={rtOptions[2].amount}</option>
+            <option value={rtOptions[0].om}>Level 0 • Normal • Rt={rtOptions[0].amount}</option>
+            <option value={rtOptions[1].om}>Level 1 • Prepare • Rt={rtOptions[1].amount}</option>
+            <option value={rtOptions[2].om}>Level 2 • Reduce • Rt={rtOptions[2].amount}</option>
+            <option value={rtOptions[3].om}>Level 3 • Restrict • Rt={rtOptions[3].amount}</option>
+            <option value={rtOptions[4].om}>Level 4 • Lockdown • Rt={rtOptions[4].amount}</option>
           </select>
         {/if}
       </div>

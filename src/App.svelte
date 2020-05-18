@@ -20,7 +20,7 @@
   const showTravelDynamics = window.location.search.indexOf('showTravel=true') > -1
   const showRtControls = window.location.search.indexOf('showRtControls=true') > -1
   const useSlider = window.location.search.indexOf('r0=slider') > -1
-  const allowDownload = window.location.search.indexOf('csv=true') > -1
+  const allowDownload = window.location.search.indexOf('csv=false') === -1
 
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
@@ -95,13 +95,17 @@
   $: D_travel = Date.now() > may31.valueOf() ? new Date() : may31
   $: travelStart = differenceInCalendarDays(D_travel, startDate)
 
-  $: rtLevel1 = 0.28
-  $: rtLevel2 = 0.52
-  $: rtLevel3 = 0.66
+  $: rtLevel0 = 0    //Rt=2.5
+  $: rtLevel1 = 0.28 //Rt=1.8
+  $: rtLevel2 = 0.52 //Rt=1.2
+  $: rtLevel3 = 0.60 //Rt=1.0
+  $: rtLevel4 = 0.66 //Rt=0.85
   $: rtOptions = [
+    { om: rtLevel0, amount: (R0*(1-rtLevel0)).toFixed(2), decrease: (100*(1-(1-rtLevel0))).toFixed(2) },
     { om: rtLevel1, amount: (R0*(1-rtLevel1)).toFixed(2), decrease: (100*(1-(1-rtLevel1))).toFixed(2) },
     { om: rtLevel2, amount: (R0*(1-rtLevel2)).toFixed(2), decrease: (100*(1-(1-rtLevel2))).toFixed(2) },
     { om: rtLevel3, amount: (R0*(1-rtLevel3)).toFixed(2), decrease: (100*(1-(1-rtLevel3))).toFixed(2) },
+    { om: rtLevel4, amount: (R0*(1-rtLevel4)).toFixed(2), decrease: (100*(1-(1-rtLevel4))).toFixed(2) },
   ]
   
   $: staticLines = [
@@ -157,7 +161,7 @@
     amount: 1.2 / R0,
     om: 0.52,
     index: 0,
-    rtIndex: 1,
+    rtIndex: 2,
     canDrag: false,
     label: '5/31: Potential phased reopening'
   }]
@@ -759,10 +763,14 @@ function getInitialState() {
   .travel-row .column {
     max-width: 200px;
   }
-  .travel-row .paneldesc {
+  .travel-row .paneldesc,
+  .rt-row .paneldesc {
     padding-top: 10px;
   }
-
+  .rt-row .column + .column {
+    margin-left: 0px;
+  }
+  
   .minorTitle {
     font-family: nyt-franklin,helvetica,arial,sans-serif;
     margin: auto;
@@ -1361,6 +1369,39 @@ function getInitialState() {
     </div>
   {/if}
 
+  {#if showRtControls}
+    <div class="minorTitle">
+      <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Rt Controls</div>
+    </div>
+    <div class="row rt-row">
+      <div class="column">
+        <div class="paneldesc" style="height:20px">Level 0 • Normal • Rt={(R0*(1-rtLevel0)).toFixed(2)}<br></div>
+        <div class="slidertext">to decrease txn by {(100*(1-(1-rtLevel0))).toFixed(2)}%</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel0} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:20px">Level 1 • Prepare • Rt={(R0*(1-rtLevel1)).toFixed(2)}<br></div>
+        <div class="slidertext">to decrease txn by {(100*(1-(1-rtLevel1))).toFixed(2)}%</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel1} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:20px">Level 2 • Reduce • Rt={(R0*(1-rtLevel2)).toFixed(2)}<br></div>
+        <div class="slidertext">to decrease txn by {(100*(1-(1-rtLevel2))).toFixed(2)}%</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel2} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:20px">Level 3 • Restrict • Rt={(R0*(1-rtLevel3)).toFixed(2)}<br></div>
+        <div class="slidertext">to decrease txn by {(100*(1-(1-rtLevel3))).toFixed(2)}%</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel3} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:20px">Level 4 • Lockdown • Rt={(R0*(1-rtLevel4)).toFixed(2)}<br></div>
+        <div class="slidertext">to decrease txn by {(100*(1-(1-rtLevel4))).toFixed(2)}%</div>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel4} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
+      </div>
+    </div>
+  {/if}
+
   <div style="height:220px;">
     <div class="minorTitle">
       <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Transmission Dynamics</div>
@@ -1431,29 +1472,6 @@ function getInitialState() {
       </div>
 
     </div>
-
-    {#if showRtControls}
-      <div class="minorTitle">
-        <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Rt Controls</div>
-      </div>
-      <div class="row travel-row">
-        <div class="column">
-          <div class="paneldesc" style="height:20px">Level 1 • Prepare • Rt={(R0*(1-rtLevel1)).toFixed(2)}<br></div>
-          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel1))).toFixed(2)}%</div>
-          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel1} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
-        </div>
-        <div class="column">
-          <div class="paneldesc" style="height:20px">Level 2 • Reduce • Rt={(R0*(1-rtLevel2)).toFixed(2)}<br></div>
-          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel2))).toFixed(2)}%</div>
-          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel2} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
-        </div>
-        <div class="column">
-          <div class="paneldesc" style="height:20px">Level 3 • Severe • Rt={(R0*(1-rtLevel3)).toFixed(2)}<br></div>
-          <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel3))).toFixed(2)}%</div>
-          <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel3} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
-        </div>
-      </div>
-    {/if}
 
   </div>
 {/if}
