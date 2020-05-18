@@ -292,11 +292,13 @@ function getInitialState() {
     var P  = []
     var TI = []
     var Iters = []
+    var CSVIters = []
     while (steps--) { 
       if ((steps+1) % (sample_step) == 0) {
             //    Dead   Hospital          Recovered        Infectious   Exposed
         P.push([ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
         Iters.push(v)
+        CSVIters.push([...v, t])
         TI.push(N*(1-v[0]))
         // console.log((v[0] + v[1] + v[2] + v[3] + v[4] + v[5] + v[6] + v[7] + v[8] + v[9]))
         // console.log(v[0] , v[1] , v[2] , v[3] , v[4] , v[5] , v[6] , v[7] , v[8] , v[9])
@@ -316,6 +318,7 @@ function getInitialState() {
             "total": 1-v[0],
             "total_infected": TI,
             "Iters":Iters,
+            "CSVIters": CSVIters,
             "dIters": f}
   }
 
@@ -331,13 +334,15 @@ function getInitialState() {
   $: total          = Sol["total"]
   $: total_infected = Sol["total_infected"].slice(0,100)
   $: Iters          = Sol["Iters"]
+  $: CSVIters       = Sol["CSVIters"]
   $: dIters         = Sol["dIters"]
   $: Pmax           = max(P, checked)
   $: lock           = false
 
   const onDownloadCsvClick = () => {
     try {
-      const data = Iters.map(iter => ({
+      const data = CSVIters.map(iter => ({
+        Date: dateFormat(addDays(startDate, iter[10]), 'M/d/yyyy'),
         Susceptible:  formatNumber(Math.round(iter[0] * N)),
         Exposed:      formatNumber(Math.round(iter[1] * N)),
         Infectious:   formatNumber(Math.round(iter[2] * N)),
