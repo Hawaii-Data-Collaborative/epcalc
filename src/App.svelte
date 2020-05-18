@@ -555,6 +555,15 @@ function getInitialState() {
   $: checked = [true, true, false, true, true]
   $: active  = 0
   $: active_ = active >= 0 ? active : Iters.length - 1
+  $: totalHospitalizations = (function() {
+    let i = active_
+    let total = 0
+    while (i--) {
+      total += N*(Iters[i][5]+Iters[i][6])
+    }
+
+    return formatNumber(Math.round(total))
+  })()
 
   var Tinc_s = "\\color{#CCC}{T^{-1}_{\\text{inc}}} "
   var Tinf_s = "\\color{#CCC}{T^{-1}_{\\text{inf}}}"
@@ -1124,7 +1133,7 @@ function getInitialState() {
 
       <!-- Hospitalized -->
       <div style="position:absolute; left:0px; top:{legendheight*4+57}px; width: 180px; height: 100px">
-        <Arrow height="43" arrowhead="" dasharray="3 2"/>
+        <Arrow height="60" arrowhead="" dasharray="3 2"/>
         <Checkbox color="{colors[1]}" bind:checked={checked[1]}/>
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Hospitalized</div>
@@ -1134,12 +1143,15 @@ function getInitialState() {
           </div>
           <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*(get_d(active_)[5]+get_d(active_)[6]))) } / day</i>
                                  </div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Total</span> <i>{totalHospitalizations}</i>
+                                 </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">Active hospitalizations.</div>
 
       </div>
 
-      <div style="position:absolute; left:0px; top:{legendheight*4 + 120+2}px; width: 180px; height: 100px">
+      <!-- Fatalities -->
+      <div style="position:absolute; left:0px; top:{legendheight*4 + 120+19}px; width: 180px; height: 100px">
         <Arrow height="40" arrowhead="" dasharray="3 2"/>
 
         <Checkbox color="{colors[0]}" bind:checked={checked[0]}/>
