@@ -13,9 +13,9 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat } from 'date-fns'
+  import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat, getDaysInMonth } from 'date-fns'
   import _ from 'lodash'
-  import { RtLevels, RtOmLevels } from './constants'
+  import { travelerData2019 } from './constants'
 
   const showTravelDynamics = window.location.search.indexOf('showTravel=true') > -1
   const showRtControls = window.location.search.indexOf('showRtControls=true') > -1
@@ -24,6 +24,7 @@
 
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
+  const may31 = new Date('2020-05-31T00:00')
   let showControls = false
 
   function range(n){
@@ -89,9 +90,10 @@
   $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
 
-  $: P_travel = 0.1
-  $: R_travel = 8
-  $: N_travel = 0
+  $: P_travel = 0
+  $: P_travelersinfected = 0
+  $: D_travel = Date.now() > may31.valueOf() ? new Date() : may31
+  $: travelStart = differenceInCalendarDays(D_travel, startDate)
 
   $: rtLevel1 = 0.28
   $: rtLevel2 = 0.52
@@ -214,7 +216,7 @@ function getInitialState() {
 
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
-  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, P_travel, R_travel, N_travel) {
+  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, travelStart, P_travel, P_travelersinfected) {
     var interpolation_steps = 40
     var steps = 110*interpolation_steps
     var dt = dt/interpolation_steps
@@ -238,11 +240,25 @@ function getInitialState() {
       }
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
-      
+
+      function getI(){
+        if (t < travelStart) {
+          return x[2]
+        } 
+        
+        var date = addDays(startDate, t)
+        var month = date.getMonth()
+        var monthlyTravelers = travelerData2019[month]
+        var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
+        var dailyTravelersActual = dailyTravelersTypical * P_travel
+        var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
+        return x[2] + (dailyTravelersInfected/N)
+      }
+
       var S        = x[0] // Susectable
       var E        = x[1] // Exposed
       // var I     = x[2] // Infectious 
-      var I        = x[2] + (N_travel/N) // Infectious 
+      var I        = getI()
       var Mild     = x[3] // Recovering (Mild)     
       var Severe   = x[4] // Recovering (Severe at home)
       var Severe_H = x[5] // Recovering (Severe in hospital)
@@ -257,12 +273,7 @@ function getInitialState() {
 
       var dS        = -beta*I*S
       var dE        =  beta*I*S - a*E
-
       var dI        =  a*E - gamma*I
-      // var dI     =  a*E - gamma*(I+(N_travel/N))
-      // var dI     =  E/D_incbation - I/D_infectious
-      // var dI     =  E/D_incbation - (I/D_infectious + I_Trav/D_infectious)
-
       var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
       var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
       var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H
@@ -312,7 +323,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, P_travel, R_travel, N_travel)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, travelStart, P_travel, P_travelersinfected)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -501,6 +512,15 @@ function getInitialState() {
         amount: 1 - rtOption.om
       }
     })
+  }
+
+  function onTravelDateChange(e) {
+    var value = e.target.value
+    if (value.indexOf('T') === -1) {
+      value += 'T00:00'
+    }
+
+    D_travel = new Date(value)
   }
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
@@ -717,9 +737,6 @@ function getInitialState() {
     /*border-top: 2px solid #999*/
   }
 
-  .travel-row {
-    padding-bottom: 20px;
-  }
   .travel-row .column {
     max-width: 200px;
   }
@@ -1299,6 +1316,29 @@ function getInitialState() {
   {/if}
 </div>
 {#if showControls}
+
+  {#if showTravelDynamics}
+    <div class="minorTitle">
+      <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
+    </div>
+    <div class="row travel-row">
+      <div class="column">
+        <div class="paneldesc" style="height:30px">Date to resume travel.<br></div>
+        <input type=date value={dateFormat(D_travel, 'yyyy-MM-dd')} on:change={onTravelDateChange} />
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:30px">Travel rate compared to <a href="http://dbedt.hawaii.gov/visitor/tourism/" target="_blank">2019</a>.<br></div>
+        <div class="slidertext">{Math.round(P_travel*100)} %</div>
+        <input class="range" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
+      </div>
+      <div class="column">
+        <div class="paneldesc" style="height:30px">Percentage of infected, asymptomatic travelers entering the state per day.<br></div>
+        <div class="slidertext">{(P_travelersinfected*100).toFixed(1)} %</div>
+        <input class="range" type=range bind:value={P_travelersinfected} min={0} max={0.1} step={0.001}>
+      </div>
+    </div>
+  {/if}
+
   <div style="height:220px;">
     <div class="minorTitle">
       <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Transmission Dynamics</div>
@@ -1389,31 +1429,6 @@ function getInitialState() {
           <div class="paneldesc" style="height:20px">Level 3 • Severe • Rt={(R0*(1-rtLevel3)).toFixed(2)}<br></div>
           <div class="slidertext">decrease transmission by {(100*(1-(1-rtLevel3))).toFixed(2)}%</div>
           <input class="range" style="margin-bottom: 8px" type=range bind:value={rtLevel3} min={0} max={1} step={0.01} on:input={updateInterventionLines}>
-        </div>
-      </div>
-    {/if}
-
-    {#if showTravelDynamics}
-      <div class="minorTitle">
-        <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
-      </div>
-      <div class="row travel-row">
-        <!-- <div class="column">
-          <div class="paneldesc" style="height:30px">Percentage of travel allowed compared to typical months.<br></div>
-          <div class="slidertext">{Math.round(P_travel*100)} %</div>
-          <input class="range" style="margin-bottom: 8px" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
-        </div>
-        <div class="column">
-          <div class="paneldesc" style="height:30px">Number of months until travel returns to 100%.<br></div>
-          <div class="slidertext">{R_travel} Months</div>
-          <input class="range" type=range bind:value={R_travel} min={0} max={24} step={1}>
-        </div> -->
-        <div class="column">
-          <div class="paneldesc" style="height:30px">Number of infected, asymptomatic travelers entering the state per day.<br></div>
-          <!-- <div class="slidertext">{(N_travel*100).toFixed(2)} %</div> -->
-          <div class="slidertext">{Math.round(N_travel)}</div>
-          <!-- <input class="range" type=range bind:value={N_travel} min={0} max={0.1} step={0.001}> -->
-          <input class="range" type=range bind:value={N_travel} min={0} max={50} step={1}>
         </div>
       </div>
     {/if}
