@@ -337,13 +337,18 @@ function getInitialState() {
 
   const onDownloadCsvClick = () => {
     try {
-      const data = _.zip(Sol.total_infected, Sol.Iters.map(arr => arr.join(',')), Sol.P.map(arr => arr.join(',')))
-      
-      let csv = window.json2csv.parse(data);
-      const rows = csv.split('\n')
-      rows[0] = '"Total infected", Iters, P'
-      csv = rows.join('\n')
+      const data = Iters.map(iter => ({
+        Susceptible:  formatNumber(Math.round(iter[0] * N)),
+        Exposed:      formatNumber(Math.round(iter[1] * N)),
+        Infectious:   formatNumber(Math.round(iter[2] * N)),
+        Removed:      formatNumber(Math.round(N*(1-iter[0]-iter[1]-iter[2]))),
+        Recovered:    formatNumber(Math.round(N*(iter[7]+iter[8]))),
+        Hospitalized: formatNumber(Math.round(N*(iter[5]+iter[6]))),
+        Fatalities:   formatNumber(Math.round(N*iter[9]))
+      }))
 
+      const csv = window.json2csv.parse(data);
+      
       // console.log(csv)
 
       var a = document.createElement('a')
