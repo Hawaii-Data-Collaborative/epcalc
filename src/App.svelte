@@ -13,12 +13,12 @@
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
-  import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat, getDaysInMonth } from 'date-fns'
+  import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat, getDaysInMonth, isValid } from 'date-fns'
   import _ from 'lodash'
   import { travelerData2019 } from './constants'
 
-  const showTravelDynamics = window.location.search.indexOf('showTravel=true') > -1
-  const showRtControls = window.location.search.indexOf('showRtControls=true') > -1
+  const showTravelDynamics = window.location.search.indexOf('showTravel=false') === -1
+  const showRtControls = window.location.search.indexOf('showRtControls=false') === -1
   const useSlider = window.location.search.indexOf('r0=slider') > -1
   const allowDownload = window.location.search.indexOf('csv=false') === -1
 
@@ -33,6 +33,14 @@
 
   function formatNumber(num) {
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+  }
+
+  function getTravelLineLabel(date) {
+    try {
+      return dateFormat(date, 'M/d') + ': resume travel'
+    } catch(err) {
+      return '[invalid date]'
+    }
   }
 
   var sum = function(arr, bools){
@@ -155,6 +163,12 @@
     //   label: '5/31: Potential phased reopening'
     // }
   ]
+
+  $: travelLine = {
+    time: differenceInCalendarDays(D_travel, startDate), 
+    amount: null,
+    label: getTravelLineLabel(D_travel)
+  }
 
   $: interventionLines = [{
     time: differenceInCalendarDays(startOfDay(endOfMonth(new Date())), startDate),
@@ -1249,6 +1263,23 @@ function getInitialState() {
           </div>
         </div>
       {/each}
+
+      <div class="static-line" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+        <div class="dottedline"  style="pointer-events: all;
+                    position: absolute;
+                    top:-19px;
+                    left:{xScaleTime(travelLine.time)}px;
+                    width:2px;
+                    background-color:#FFF;
+                    border-right: 1px dashed #0003;
+                    pointer-events: all;
+                    height:{height}px">
+          
+          <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc; pointer-events: none;">
+            <div>{travelLine.label}</div>
+          </div>
+        </div>
+      </div>
       
 
       {#each interventionLines as interventionLine} 
@@ -1354,7 +1385,7 @@ function getInitialState() {
     <div class="row travel-row">
       <div class="column">
         <div class="paneldesc" style="height:30px">Date to resume travel.<br></div>
-        <input type=date value={dateFormat(D_travel, 'yyyy-MM-dd')} on:change={onTravelDateChange} />
+        <input type=date value={isValid(D_travel) ? dateFormat(D_travel, 'yyyy-MM-dd') : ''} on:change={onTravelDateChange} />
       </div>
       <div class="column">
         <div class="paneldesc" style="height:30px">Travel rate compared to <a href="http://dbedt.hawaii.gov/visitor/tourism/" target="_blank">2019</a>.<br></div>
