@@ -259,24 +259,24 @@ function getInitialState() {
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
 
-      function getI(){
+      function getITravelers(){
         if (t < travelStart) {
-          return x[2]
+          return 0
         } 
         
         var date = addDays(startDate, t)
         var month = date.getMonth()
-        var monthlyTravelers = travelerData2019[month]
-        var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
+        // var monthlyTravelers = travelerData2019[month]
+        // var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
+        var dailyTravelersTypical = 250000
         var dailyTravelersActual = dailyTravelersTypical * P_travel
         var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
-        return x[2] + (dailyTravelersInfected/N)
+        return dailyTravelersInfected / (N + dailyTravelersActual)
       }
 
       var S        = x[0] // Susectable
       var E        = x[1] // Exposed
-      // var I     = x[2] // Infectious 
-      var I        = getI()
+      var I        = x[2] // Infectious 
       var Mild     = x[3] // Recovering (Mild)     
       var Severe   = x[4] // Recovering (Severe at home)
       var Severe_H = x[5] // Recovering (Severe in hospital)
@@ -289,8 +289,12 @@ function getInitialState() {
       var p_fatal  = CFR
       var p_mild   = 1 - P_SEVERE - CFR
 
-      var dS        = -beta*I*S
-      var dE        =  beta*I*S - a*E
+      var I_travelers = getITravelers()
+      var I_combined  = I + I_travelers
+
+      // var dS        = -beta*I*S
+      var dS        = -beta*I_combined*S
+      var dE        =  beta*I_combined*S - a*E
       var dI        =  a*E - gamma*I
       var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
       var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
