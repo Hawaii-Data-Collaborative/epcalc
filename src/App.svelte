@@ -204,13 +204,16 @@
 
 let initialState = null
 function serializeState(state) {
-  return JSON.stringify(state || { 
+  const json = JSON.stringify(state || { 
     Time_to_death, logN, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, 
     D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, 
     InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines,
     rtLevel0, rtLevel1, rtLevel2, rtLevel3, rtLevel4, rtOptions,
     P_travel, P_travelersinfected, D_travel
   })
+
+  console.log(json)
+  return json
 }
 function setState(data) {
   if (!(data.logN === undefined)) {logN = data.logN}
@@ -226,13 +229,10 @@ function setState(data) {
   if (!(data.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(data.D_hospital_lag)}
   if (!(data.P_SEVERE === undefined)) {P_SEVERE = parseFloat(data.P_SEVERE)}
   if (!(data.Time_to_death === undefined)) {Time_to_death = parseFloat(data.Time_to_death)}
-  if (!(data.interventionLines === undefined)) {interventionLines = data.interventionLines.map(l => ({
-    time: Number(l.time),
-    amount: Number(l.amount),
-    om: Number(l.om),
-    index: Number(l.index),
-    canDrag: l.canDrag
-  }))}
+  
+  if (!(data.P_travel === undefined)) {P_travel = data.P_travel}
+  if (!(data.P_travelersinfected === undefined)) {P_travelersinfected = data.P_travelersinfected}
+  if (!(data.D_travel === undefined)) {D_travel = new Date(data.D_travel)}
   
   if (!(data.rtLevel0 === undefined)) {rtLevel0 = data.rtLevel0}
   if (!(data.rtLevel1 === undefined)) {rtLevel1 = data.rtLevel1}
@@ -241,9 +241,10 @@ function setState(data) {
   if (!(data.rtLevel4 === undefined)) {rtLevel4 = data.rtLevel4}
   if (!(data.rtOptions === undefined)) {rtOptions = data.rtOptions}
   
-  if (!(data.P_travel === undefined)) {P_travel = data.P_travel}
-  if (!(data.P_travelersinfected === undefined)) {P_travelersinfected = data.P_travelersinfected}
-  if (!(data.D_travel === undefined)) {D_travel = new Date(data.D_travel)}
+  // Make sure the changes are flushed before updating interventionLines
+  setTimeout(() => {
+    if (!(data.interventionLines === undefined)) {interventionLines = data.interventionLines}
+  }, 150)
 }
 function setInitialState() {
   initialState = serializeState()
