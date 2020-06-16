@@ -14,7 +14,7 @@ export function getScenarios(startDate) {
     const D_recovery_severe = 13 //(31.5 - 2.9)
     const D_hospital_lag = 6 //5
     const D_death = 4.5 //Time_to_death - D_infectious
-    const CFR = 0.05 //0.059 //0.005 //0.02
+    const CFR = 0.005 //0.059 //0.005 //0.02
     const InterventionTime = 100
     const OMInterventionAmt = 2 / 3
     const InterventionAmt = 1 - OMInterventionAmt
