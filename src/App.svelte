@@ -16,6 +16,7 @@
   import { differenceInCalendarDays, addDays, addMonths, startOfDay, startOfMonth, endOfMonth, format as dateFormat, getDaysInMonth, isValid } from 'date-fns'
   import _ from 'lodash'
   import { travelerData2019 } from './constants'
+  import { getScenarios } from './scenarios'
 
   const showTravelDynamics = window.location.search.indexOf('showTravel=false') === -1
   const showRtControls = window.location.search.indexOf('showRtControls=false') === -1
@@ -26,6 +27,8 @@
   const startDate = new Date('2020-03-06T00:00')
   const may31 = new Date('2020-05-31T00:00')
   let showControls = false
+  
+  const { bestCase, worstCase } = getScenarios(startDate)
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -200,8 +203,14 @@
                "P_SEVERE": P_SEVERE})
 
 let initialState = null
-function serializeState() {
-  return JSON.stringify({ Time_to_death, logN, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines })
+function serializeState(state) {
+  return JSON.stringify(state || { 
+    Time_to_death, logN, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, 
+    D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, 
+    InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines,
+    rtLevel0, rtLevel1, rtLevel2, rtLevel3, rtLevel4, rtOptions,
+    P_travel, P_travelersinfected, D_travel
+  })
 }
 function setState(data) {
   if (!(data.logN === undefined)) {logN = data.logN}
@@ -224,6 +233,17 @@ function setState(data) {
     index: Number(l.index),
     canDrag: l.canDrag
   }))}
+  
+  if (!(data.rtLevel0 === undefined)) {rtLevel0 = data.rtLevel0}
+  if (!(data.rtLevel1 === undefined)) {rtLevel1 = data.rtLevel1}
+  if (!(data.rtLevel2 === undefined)) {rtLevel2 = data.rtLevel2}
+  if (!(data.rtLevel3 === undefined)) {rtLevel3 = data.rtLevel3}
+  if (!(data.rtLevel4 === undefined)) {rtLevel4 = data.rtLevel4}
+  if (!(data.rtOptions === undefined)) {rtOptions = data.rtOptions}
+  
+  if (!(data.P_travel === undefined)) {P_travel = data.P_travel}
+  if (!(data.P_travelersinfected === undefined)) {P_travelersinfected = data.P_travelersinfected}
+  if (!(data.D_travel === undefined)) {D_travel = new Date(data.D_travel)}
 }
 function setInitialState() {
   initialState = serializeState()
@@ -268,7 +288,7 @@ function getInitialState() {
         var month = date.getMonth()
         // var monthlyTravelers = travelerData2019[month]
         // var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
-        var dailyTravelersTypical = 250000
+        var dailyTravelersTypical = 30000
         var dailyTravelersActual = dailyTravelersTypical * P_travel
         var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
         return dailyTravelersInfected / (N + dailyTravelersActual)
@@ -710,8 +730,21 @@ function getInitialState() {
       scenarios = JSON.parse(localStorage.scenarios)
       scenario = scenarios[0] || createScenario()
     } else {
+      const bestCaseScenario = {
+        id: 'BEST_CASE',
+        name: 'Best case',
+        data: serializeState(bestCase)
+      }
+
+      const worstCaseScenario = {
+        id: 'WORST_CASE',
+        name: 'Worst case',
+        data: serializeState(worstCase)
+      }
+
       scenario = createScenario()
-      scenarios = [scenario]
+
+      scenarios = [bestCaseScenario, worstCaseScenario, scenario]
     }
   }
 
