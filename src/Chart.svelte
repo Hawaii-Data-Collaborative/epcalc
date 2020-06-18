@@ -165,20 +165,8 @@
     font-weight: 200;
   }
 
-
-  a.tip span:before{
-      content:'';
-      display:block;
-      width:0;
-      height:0;
-      position:absolute;
-
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-right:8px solid black;
-      left:-8px;
-
-      top:7px;
+  text {
+    transition: all 300ms;
   }
 
 </style>

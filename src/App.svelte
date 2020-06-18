@@ -10,6 +10,8 @@
   import Checkbox from './Checkbox.svelte';
   import Arrow from './Arrow.svelte';
   import InterventionLine from './InterventionLine.svelte';
+  import InterventionLineTable from './InterventionLineTable.svelte';
+  import TravelerInfo from './TravelerInfo.svelte'
   import { format } from 'd3-format'
   import { event } from 'd3-selection'
   import katex from 'katex';
@@ -17,16 +19,22 @@
   import _ from 'lodash'
   import { travelerData2019 } from './constants'
   import { getScenarios } from './scenarios'
+  import defaultState from './scenarios/default'
 
   const showTravelDynamics = window.location.search.indexOf('showTravel=false') === -1
   const showRtControls = window.location.search.indexOf('showRtControls=false') === -1
   const useSlider = window.location.search.indexOf('r0=slider') > -1
   const allowDownload = window.location.search.indexOf('csv=false') === -1
 
+  const DAILY_TRAVELERS_TYPICAL = 250000
+  const DAILY_VISITOR_ARRIVALS = 28170
+  const DAILY_VISITOR_CENSUS = 247203
+
   const legendheight = 67 
   const startDate = new Date('2020-03-06T00:00')
   const may31 = new Date('2020-05-31T00:00')
   let showControls = false
+  let userLockedYAxis = false
   
   const { bestCase, worstCase } = getScenarios(startDate)
 
@@ -247,6 +255,13 @@ function setState(data) {
   setTimeout(() => {
     if (!(data.interventionLines === undefined)) {interventionLines = data.interventionLines}
   }, 150)
+
+  setTimeout(() => {
+    selectAll('.y-axis text').style('fill', '#222').style('font-size', '14px')
+    setTimeout(() => {
+      selectAll('.y-axis text').style('fill', '').style('font-size', '')
+    }, 1000)
+  }, 200)
 }
 function setInitialState() {
   initialState = serializeState()
@@ -291,10 +306,14 @@ function getInitialState() {
         var month = date.getMonth()
         // var monthlyTravelers = travelerData2019[month]
         // var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
-        var dailyTravelersTypical = 30000
+        var dailyTravelersTypical = DAILY_TRAVELERS_TYPICAL
         var dailyTravelersActual = dailyTravelersTypical * P_travel
+        if (dailyTravelersActual === 0) {
+          return 0
+        }
+
         var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
-        return dailyTravelersInfected / (N + dailyTravelersActual)
+        return dailyTravelersInfected / dailyTravelersActual
       }
 
       var S        = x[0] // Susectable
@@ -670,7 +689,8 @@ function getInitialState() {
   let scenarios = []
 
   const createScenario = () => {
-    var newId = scenarios.length ? Math.max(...scenarios.map(s=>s.id)) + 1 : 1
+    const ids = scenarios.map(s=>s.id).filter(id=>Number.isInteger(Number(id)))
+    var newId = ids.length ? Math.max(...ids) + 1 : 1
     return {
       id: newId,
       name: 'Scenario ' + newId,
@@ -700,7 +720,7 @@ function getInitialState() {
     var newScenario = createScenario()
     scenarios = [ ...scenarios, newScenario ]
     scenario = newScenario
-    setState(getInitialState())
+    setState(defaultState)
   }
 
   const onDeleteScenarioClick = () => {
@@ -1400,10 +1420,21 @@ function getInitialState() {
     </div>
   </div>
 
-  <div style="margin-left: 10px; display: flex; justify-content: center; align-items: center;">
-    <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
-    <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
-    <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
+  <div style="margin-left: 10px;">
+    <div style="display: flex; justify-content: center; align-items: center;">
+      <span class="paneltitle" style="margin-right: 5px; padding: 0;">Add/remove intervention lines:</span>
+      <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
+      <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
+    </div>
+    <!-- <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 71px 0 0;">
+      <InterventionLineTable data={interventionLines} startDate={startDate} R0={R0} />
+    </div> -->
+    <!-- <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 71px 0 0;">
+      <span class="paneltitle">Lock y axis: </span>
+      <div style="position: relative; top: -14px; left: 6px;">
+        <Checkbox color="{colors[3]}" bind:checked={userLockedYAxis}/>
+      </div>
+    </div> -->
   </div>
 </div>
 <!-- Custom controls end -->
@@ -1433,9 +1464,16 @@ function getInitialState() {
         <input class="range" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
       </div>
       <div class="column">
-        <div class="paneldesc" style="height:30px">Percentage of infected, asymptomatic travelers entering the state per day.<br></div>
-        <div class="slidertext">{(P_travelersinfected*100).toFixed(1)} %</div>
-        <input class="range" type=range bind:value={P_travelersinfected} min={0} max={0.1} step={0.001}>
+        <div class="paneldesc" style="height:30px">Percentage of travelers becoming infected during stay.<br></div>
+        <div class="slidertext">{(P_travelersinfected*100).toFixed(2)} %</div>
+        <input class="range" type=range bind:value={P_travelersinfected} min={0} max={0.1} step={0.0001}>
+      </div>
+      <div class="column" style="padding-top: 10px;">
+        <TravelerInfo 
+          P_travel={P_travel} 
+          P_travelersinfected={P_travelersinfected} 
+          dailyVisitorArrivals={DAILY_VISITOR_ARRIVALS} 
+          dailyVisitorCensus={DAILY_VISITOR_CENSUS} />
       </div>
     </div>
   {/if}
