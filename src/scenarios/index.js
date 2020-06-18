@@ -20,7 +20,7 @@ export function getScenarios(startDate) {
     const InterventionAmt = 1 - OMInterventionAmt
     const Time = 220
     const Xmax = 110000
-    const dt = 2
+    const dt = 3.07
     // const P_SEVERE = 0.12 //0.045 //0.2
     const duration = 7 * 12 * 1e10
     const D_travel = new Date('2020-07-01T00:00')

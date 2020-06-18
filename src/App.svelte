@@ -230,6 +230,8 @@ function setState(data) {
   if (!(data.P_SEVERE === undefined)) {P_SEVERE = parseFloat(data.P_SEVERE)}
   if (!(data.Time_to_death === undefined)) {Time_to_death = parseFloat(data.Time_to_death)}
   
+  if (!(data.dt === undefined)) {dt = data.dt}
+  
   if (!(data.P_travel === undefined)) {P_travel = data.P_travel}
   if (!(data.P_travelersinfected === undefined)) {P_travelersinfected = data.P_travelersinfected}
   if (!(data.D_travel === undefined)) {D_travel = new Date(data.D_travel)}
@@ -743,9 +745,11 @@ function getInitialState() {
         data: serializeState(worstCase)
       }
 
-      scenario = createScenario()
-
-      scenarios = [bestCaseScenario, worstCaseScenario, scenario]
+      scenarios = [bestCaseScenario, worstCaseScenario]
+      scenario = bestCaseScenario
+      setTimeout(() => {
+        setState(bestCase)
+      }, 100)
     }
   }
 
@@ -1089,9 +1093,7 @@ function getInitialState() {
   }
 </style>
 
-<h2>Epidemic Calculator</h2>
-
-<div class="chart" style="display: flex; max-width: 1120px">
+<div class="chart" style="padding-top: 30px; display: flex; max-width: 1120px">
 
   <div style="flex: 0 0 270px; width:270px;">
     <div style="position:relative; top:48px; right:-115px">
