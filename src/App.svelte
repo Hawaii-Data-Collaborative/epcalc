@@ -314,8 +314,8 @@ function getInitialState() {
       var I_combined  = I + I_travelers
 
       // var dS        = -beta*I*S
-      var dS        = -beta*I_combined*S
-      var dE        =  beta*I_combined*S - a*E
+      var dS        = -beta*I_combined*S/N
+      var dE        =  beta*I_combined*S/N - a*E
       var dI        =  a*E - gamma*I
       var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
       var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
@@ -329,7 +329,7 @@ function getInitialState() {
       return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]
     }
 
-    var v = [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0]
+    var v = [N - I0, 0, I0, 0, 0, 0, 0, 0, 0, 0]
     var t = 0
 
     var P  = []
@@ -339,10 +339,10 @@ function getInitialState() {
     while (steps--) { 
       if ((steps+1) % (sample_step) == 0) {
             //    Dead   Hospital          Recovered        Infectious   Exposed
-        P.push([ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
+        P.push([ v[9], (v[5]+v[6]),  (v[7] + v[8]), v[2],    v[1] ])
         Iters.push(v)
         CSVIters.push([...v, t])
-        TI.push(N*(1-v[0]))
+        TI.push((1-v[0]))
         // console.log((v[0] + v[1] + v[2] + v[3] + v[4] + v[5] + v[6] + v[7] + v[8] + v[9]))
         // console.log(v[0] , v[1] , v[2] , v[3] , v[4] , v[5] , v[6] , v[7] , v[8] , v[9])
       }
@@ -357,7 +357,7 @@ function getInitialState() {
       }
     }
     return {"P": P, 
-            "deaths": N*v[6], 
+            "deaths": v[6], 
             "total": 1-v[0],
             "total_infected": TI,
             "Iters":Iters,
@@ -386,13 +386,13 @@ function getInitialState() {
     try {
       const data = CSVIters.map(iter => ({
         Date: dateFormat(addDays(startDate, iter[10]), 'M/d/yyyy'),
-        Susceptible:  formatNumber(Math.round(iter[0] * N)),
-        Exposed:      formatNumber(Math.round(iter[1] * N)),
-        Infectious:   formatNumber(Math.round(iter[2] * N)),
-        Removed:      formatNumber(Math.round(N*(1-iter[0]-iter[1]-iter[2]))),
-        Recovered:    formatNumber(Math.round(N*(iter[7]+iter[8]))),
-        Hospitalized: formatNumber(Math.round(N*(iter[5]+iter[6]))),
-        Fatalities:   formatNumber(Math.round(N*iter[9]))
+        Susceptible:  formatNumber(Math.round(iter[0])),
+        Exposed:      formatNumber(Math.round(iter[1])),
+        Infectious:   formatNumber(Math.round(iter[2])),
+        Removed:      formatNumber(Math.round((1-iter[0]-iter[1]-iter[2]))),
+        Recovered:    formatNumber(Math.round((iter[7]+iter[8]))),
+        Hospitalized: formatNumber(Math.round((iter[5]+iter[6]))),
+        Fatalities:   formatNumber(Math.round(iter[9]))
       }))
 
       const csv = window.json2csv.parse(data);
@@ -602,7 +602,7 @@ function getInitialState() {
     let i = active_
     let total = 0
     while (i--) {
-      total += N*(Iters[i][5]+Iters[i][6])
+      total += (Iters[i][5]+Iters[i][6])
     }
 
     return formatNumber(Math.round(total))
@@ -1106,9 +1106,9 @@ function getInitialState() {
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Susceptible</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][0]))} 
-                                  ({ (100*Iters[active_][0]).toFixed(2) }%)</i></div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[0]))} / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(Iters[active_][0]))} 
+                                  ({ (100*(Iters[active_][0]/N)).toFixed(2) }%)</i></div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(get_d(active_)[0]))} / day</i>
                                  </div>
           </div>
         </div>
@@ -1126,9 +1126,9 @@ function getInitialState() {
           <div class="legendtitle">Exposed</div>
 
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][1]))} 
-                                  ({ (100*Iters[active_][1]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[1])) } / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(Iters[active_][1]))} 
+                                  ({ (100*(Iters[active_][1]/N)).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(get_d(active_)[1])) } / day</i>
                                  </div>
           </div>
         </div>
@@ -1145,9 +1145,9 @@ function getInitialState() {
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Infectious</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][2]))} 
-                                  ({ (100*Iters[active_][2]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[2])) } / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(Iters[active_][2]))} 
+                                  ({ (100*(Iters[active_][2]/N)).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(get_d(active_)[2])) } / day</i>
                                  </div>
           </div>
         </div>
@@ -1165,9 +1165,9 @@ function getInitialState() {
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Removed</div>
           <div style="padding-top: 10px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N* (1-Iters[active_][0]-Iters[active_][1]-Iters[active_][2]) ))} 
-                                  ({ ((100*(1-Iters[active_][0]-Iters[active_][1]-Iters[active_][2]))).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*(get_d(active_)[3]+get_d(active_)[4]+get_d(active_)[5]+get_d(active_)[6]+get_d(active_)[7]) )) } / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N* ((1-Iters[active_][0]/N)-(Iters[active_][1]/N)-(Iters[active_][2]/N)) ))} 
+                                  ({ ((100*(1-(Iters[active_][0]/N)-(Iters[active_][1]/N)-(Iters[active_][2]/N)))).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round((get_d(active_)[3]+get_d(active_)[4]+get_d(active_)[5]+get_d(active_)[6]+get_d(active_)[7]) )) } / day</i>
                                  </div>
           </div>
         </div>
@@ -1183,8 +1183,8 @@ function getInitialState() {
           <div class="legendtitle">Recovered</div>
 
           <div style="padding-top: 3px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*(Iters[active_][7]+Iters[active_][8]) ))} 
-                                  ({ (100*(Iters[active_][7]+Iters[active_][8])).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round((Iters[active_][7]+Iters[active_][8]) ))} 
+                                  ({ (100*((Iters[active_][7]/N)+(Iters[active_][8]/N))).toFixed(2) }%)</div>
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 8px; position:relative;">Full recoveries.</div>
@@ -1198,10 +1198,10 @@ function getInitialState() {
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Hospitalized</div>
           <div style="padding-top: 3px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*(Iters[active_][5]+Iters[active_][6]) ))} 
-                                  ({ (100*(Iters[active_][5]+Iters[active_][6])).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round((Iters[active_][5]+Iters[active_][6]) ))} 
+                                  ({ (100*((Iters[active_][5]/N)+(Iters[active_][6]/N))).toFixed(2) }%)</div>
           </div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*(get_d(active_)[5]+get_d(active_)[6]))) } / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round((get_d(active_)[5]+get_d(active_)[6]))) } / day</i>
                                  </div>
           <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Total</span> <i>{totalHospitalizations}</i>
                                  </div>
@@ -1219,9 +1219,9 @@ function getInitialState() {
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Fatalities</div>
           <div style="padding-top: 3px; padding-bottom: 1px">          
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][9]))} 
-                                  ({ (100*Iters[active_][9]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[9])) } / day</i>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(Iters[active_][9]))} 
+                                  ({ (100*(Iters[active_][9]/N)).toFixed(2) }%)</div>
+          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(get_d(active_)[9])) } / day</i>
                                  </div>
           </div>
         </div>
