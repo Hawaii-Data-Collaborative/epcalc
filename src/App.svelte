@@ -48,7 +48,7 @@
 
   function getTravelLineLabel(date) {
     try {
-      return dateFormat(date, 'M/d') + ': resume travel'
+      return dateFormat(date, 'M/d') + ': travel rate change'
     } catch(err) {
       return '[invalid date]'
     }
@@ -109,10 +109,9 @@
   $: P_SEVERE          = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
 
-  $: P_travel = 0
-  $: P_travelersinfected = 0
-  $: D_travel = Date.now() > may31.valueOf() ? new Date() : may31
-  $: travelStart = differenceInCalendarDays(D_travel, startDate)
+  $: travelInfos = [
+    { D_travel: new Date(), P_travel: 0, P_travelersinfected: 0 }
+  ]
 
   $: rtLevel0 = 0    //Rt=2.5
   $: rtLevel1 = 0.28 //Rt=1.8
@@ -175,11 +174,11 @@
     // }
   ]
 
-  $: travelLine = {
-    time: differenceInCalendarDays(D_travel, startDate), 
+  $: travelLines = travelInfos.map(info => ({
+    time: differenceInCalendarDays(info.D_travel, startDate), 
     amount: null,
-    label: getTravelLineLabel(D_travel)
-  }
+    label: getTravelLineLabel(info.D_travel)
+  }))
 
   $: interventionLines = [{
     time: differenceInCalendarDays(startOfDay(endOfMonth(new Date())), startDate),
@@ -217,7 +216,7 @@ function serializeState(state) {
     D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, 
     InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines,
     rtLevel0, rtLevel1, rtLevel2, rtLevel3, rtLevel4, rtOptions,
-    P_travel, P_travelersinfected, D_travel
+    travelInfos
   })
 
   console.log(json)
@@ -240,9 +239,7 @@ function setState(data) {
   
   if (!(data.dt === undefined)) {dt = data.dt}
   
-  if (!(data.P_travel === undefined)) {P_travel = data.P_travel}
-  if (!(data.P_travelersinfected === undefined)) {P_travelersinfected = data.P_travelersinfected}
-  if (!(data.D_travel === undefined)) {D_travel = new Date(data.D_travel)}
+  if (!(data.travelInfos === undefined)) {travelInfos = data.travelInfos}
   
   if (!(data.rtLevel0 === undefined)) {rtLevel0 = data.rtLevel0}
   if (!(data.rtLevel1 === undefined)) {rtLevel1 = data.rtLevel1}
@@ -272,7 +269,7 @@ function getInitialState() {
 
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
-  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, travelStart, P_travel, P_travelersinfected) {
+  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, travelInfos) {
     var interpolation_steps = 40
     var steps = 110*interpolation_steps
     var dt = dt/interpolation_steps
@@ -283,6 +280,9 @@ function getInitialState() {
     var currentInterventionLine = interventionLines[0]
     var currentInterventionTime = currentInterventionLine.time
     var currentInterventionAmt = currentInterventionLine.amount
+
+    var sortedTravelInfos = _.sortBy(travelInfos, ti => ti.D_travel.valueOf())
+    var currentTravelInfo = sortedTravelInfos[0]
 
     function f(t, x){
 
@@ -297,12 +297,14 @@ function getInitialState() {
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
 
+      var travelStart = differenceInCalendarDays(currentTravelInfo.D_travel, startDate)
+
       function getTravelers() {
         if (t < travelStart) {
           return 0
         } 
         
-        return DAILY_TRAVELERS_TYPICAL * P_travel
+        return DAILY_TRAVELERS_TYPICAL * currentTravelInfo.P_travel
       }
 
       function getITravelers(){
@@ -315,7 +317,7 @@ function getInitialState() {
           return 0
         }
 
-        var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
+        var dailyTravelersInfected = dailyTravelersActual * currentTravelInfo.P_travelersinfected
         return dailyTravelersInfected
       }
 
@@ -380,6 +382,11 @@ function getInitialState() {
         currentInterventionTime = currentInterventionLine.time
         currentInterventionAmt = currentInterventionLine.amount
       }
+
+      var nextTravelInfo = travelInfos[travelInfos.indexOf(currentTravelInfo)+1]
+      if (nextTravelInfo && t > differenceInCalendarDays(nextTravelInfo.D_travel, startDate)) {
+        currentTravelInfo = nextTravelInfo
+      }
     }
     return {"P": P, 
             "deaths": v[6], 
@@ -394,7 +401,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, travelStart, P_travel, P_travelersinfected)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, travelInfos)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -592,13 +599,31 @@ function getInitialState() {
     })
   }
 
-  function onTravelDateChange(e) {
+  function onTravelDateChange(e, travelInfo, i) {
     var value = e.target.value
     if (value.indexOf('T') === -1) {
       value += 'T00:00'
     }
 
-    D_travel = new Date(value)
+    travelInfo.D_travel = new Date(value)
+    travelInfos[i] = travelInfo
+  }
+
+  function onAddTravelInfoClick() {
+    let D_travel = new Date()
+    const info = _.last(travelInfos)
+    if (info) {
+      D_travel = addMonths(info.D_travel, 1)
+    }
+
+    travelInfos = [
+      ...travelInfos,
+      { D_travel, P_travel: 0, P_travelersinfected: 0 }
+    ]
+  }
+
+  function onRemoveTravelInfoClick(travelInfo) {
+    travelInfos = travelInfos.filter(ti => ti !== travelInfo)
   }
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
@@ -1328,22 +1353,24 @@ function getInitialState() {
         </div>
       {/each}
 
-      <div class="static-line" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-        <div class="dottedline"  style="pointer-events: all;
-                    position: absolute;
-                    top:-19px;
-                    left:{xScaleTime(travelLine.time)}px;
-                    width:2px;
-                    background-color:#FFF;
-                    border-right: 1px dashed #0003;
-                    pointer-events: all;
-                    height:{height}px">
-          
-          <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc; pointer-events: none;">
-            <div>{travelLine.label}</div>
+      {#each travelLines as travelLine}
+        <div class="static-line" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+          <div class="dottedline"  style="pointer-events: all;
+                      position: absolute;
+                      top:-19px;
+                      left:{xScaleTime(travelLine.time)}px;
+                      width:2px;
+                      background-color:#FFF;
+                      border-right: 1px dashed #0003;
+                      pointer-events: all;
+                      height:{height}px">
+            
+            <div class="line-label caption" style="position: absolute; top: 105px; left: 0px; transform: translateX(-50%); font-size: 12px; color: rgb(119, 119, 119); user-select: none; z-index: 1; white-space: nowrap; z-index: 1; background: #fffc; pointer-events: none;">
+              <div>{travelLine.label}</div>
+            </div>
           </div>
         </div>
-      </div>
+      {/each}
       
 
       {#each interventionLines as interventionLine} 
@@ -1457,28 +1484,38 @@ function getInitialState() {
     <div class="minorTitle">
       <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Travel Dynamics</div>
     </div>
-    <div class="row travel-row">
-      <div class="column">
-        <div class="paneldesc" style="height:30px">Date to resume travel.<br></div>
-        <input type=date value={isValid(D_travel) ? dateFormat(D_travel, 'yyyy-MM-dd') : ''} on:change={onTravelDateChange} />
+    {#each travelInfos as travelInfo, i}
+      <div class="row travel-row">
+        <div class="column">
+          <div class="paneldesc" style="height:30px">{i === 0 ? 'Date to resume travel.' : 'Date to increase travel.'}<br></div>
+          <input type=date value={isValid(travelInfo.D_travel) ? dateFormat(travelInfo.D_travel, 'yyyy-MM-dd') : ''} on:change={e => onTravelDateChange(e, travelInfo, i)} />
+        </div>
+        <div class="column">
+          <div class="paneldesc" style="height:30px">Travel rate compared to <a href="http://dbedt.hawaii.gov/visitor/tourism/" target="_blank">2019</a>.<br></div>
+          <div class="slidertext">{Math.round(travelInfo.P_travel*100)} %</div>
+          <input class="range" type=range bind:value={travelInfo.P_travel} min={0} max={1} step={0.01}>
+        </div>
+        <div class="column">
+          <div class="paneldesc" style="height:30px">Percentage of travelers becoming infected during stay.<br></div>
+          <div class="slidertext">{(travelInfo.P_travelersinfected*100).toFixed(2)} %</div>
+          <input class="range" type=range bind:value={travelInfo.P_travelersinfected} min={0} max={0.1} step={0.0001}>
+        </div>
+        <div class="column" style="padding-top: 10px;">
+          <TravelerInfo 
+            P_travel={travelInfo.P_travel} 
+            P_travelersinfected={travelInfo.P_travelersinfected} 
+            dailyVisitorArrivals={DAILY_VISITOR_ARRIVALS} 
+            dailyVisitorCensus={DAILY_VISITOR_CENSUS} />
+        </div>
+        {#if i > 0}
+          <div style="display: flex; align-items: center; justify-content: flex-end; margin-left: 17px">
+            <button class="btn btn-remove btn-text" on:click={() => onRemoveTravelInfoClick(travelInfo)}>Remove</button>
+          </div>
+        {/if}
       </div>
-      <div class="column">
-        <div class="paneldesc" style="height:30px">Travel rate compared to <a href="http://dbedt.hawaii.gov/visitor/tourism/" target="_blank">2019</a>.<br></div>
-        <div class="slidertext">{Math.round(P_travel*100)} %</div>
-        <input class="range" type=range bind:value={P_travel} min={0} max={1} step={0.01}>
-      </div>
-      <div class="column">
-        <div class="paneldesc" style="height:30px">Percentage of travelers becoming infected during stay.<br></div>
-        <div class="slidertext">{(P_travelersinfected*100).toFixed(2)} %</div>
-        <input class="range" type=range bind:value={P_travelersinfected} min={0} max={0.1} step={0.0001}>
-      </div>
-      <div class="column" style="padding-top: 10px;">
-        <TravelerInfo 
-          P_travel={P_travel} 
-          P_travelersinfected={P_travelersinfected} 
-          dailyVisitorArrivals={DAILY_VISITOR_ARRIVALS} 
-          dailyVisitorCensus={DAILY_VISITOR_CENSUS} />
-      </div>
+    {/each}
+    <div class="row" style="padding: 0 0 15px 11px;">
+      <button class="btn btn-text btn-plain" on:click={onAddTravelInfoClick}>Add row</button>
     </div>
   {/if}
 

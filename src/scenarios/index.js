@@ -24,7 +24,6 @@ export function getScenarios(startDate) {
     // const P_SEVERE = 0.12 //0.045 //0.2
     const duration = 7 * 12 * 1e10
     const D_travel = new Date('2020-07-01T00:00')
-    const travelStart = differenceInCalendarDays(D_travel, startDate)
 
     const rtLevel0 = 0.36 //Rt=1.42
     const rtLevel1 = 0.45 //Rt=1.22
@@ -88,9 +87,9 @@ export function getScenarios(startDate) {
       rtOptions,
       interventionLines,
 
-      P_travel,
-      P_travelersinfected,
-      D_travel,
+      travelInfos: [
+        { D_travel, P_travel, P_travelersinfected }
+      ]
     }
   }
 
