@@ -297,23 +297,26 @@ function getInitialState() {
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
 
+      function getTravelers() {
+        if (t < travelStart) {
+          return 0
+        } 
+        
+        return DAILY_TRAVELERS_TYPICAL * P_travel
+      }
+
       function getITravelers(){
         if (t < travelStart) {
           return 0
         } 
         
-        var date = addDays(startDate, t)
-        var month = date.getMonth()
-        // var monthlyTravelers = travelerData2019[month]
-        // var dailyTravelersTypical = monthlyTravelers / getDaysInMonth(date)
-        var dailyTravelersTypical = DAILY_TRAVELERS_TYPICAL
-        var dailyTravelersActual = dailyTravelersTypical * P_travel
+        var dailyTravelersActual = getTravelers()
         if (dailyTravelersActual === 0) {
           return 0
         }
 
         var dailyTravelersInfected = dailyTravelersActual * P_travelersinfected
-        return dailyTravelersInfected / dailyTravelersActual
+        return dailyTravelersInfected
       }
 
       var S        = x[0] // Susectable
@@ -333,10 +336,11 @@ function getInitialState() {
 
       var I_travelers = getITravelers()
       var I_combined  = I + I_travelers
+      var N_combined  = N + getTravelers()
 
       // var dS        = -beta*I*S
-      var dS        = -beta*I_combined*S/N
-      var dE        =  beta*I_combined*S/N - a*E
+      var dS        = -beta*I_combined*S/N_combined
+      var dE        =  beta*I_combined*S/N_combined - a*E
       var dI        =  a*E - gamma*I
       var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
       var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
