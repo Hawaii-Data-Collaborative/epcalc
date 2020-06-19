@@ -2,8 +2,18 @@
   import { addDays, format as dateFormat } from "date-fns";
 
   export let data = [];
+  export let rtOptions = [];
   export let R0 = 2.5;
   export let startDate = new Date();
+
+  function getRtOption(line) {
+    const rtOption = rtOptions.find(o => o.om === line.om)
+    if (!rtOption) {
+      return ''
+    }
+
+    return `Level ${rtOption.index} · ${rtOption.name}`
+  }
 </script>
 
 <style>
@@ -40,7 +50,7 @@
     <tbody>
       {#each data as line, i}
         <tr>
-          <td>{i + 1}</td>
+          <td>{i + 1} – {getRtOption(line)}</td>
           <td>{dateFormat(addDays(startDate, line.time), 'M/d/Y')}</td>
           <td>{(R0 * line.amount).toFixed(2)}</td>
         </tr>

@@ -119,11 +119,11 @@
   $: rtLevel3 = 0.60 //Rt=1.0
   $: rtLevel4 = 0.66 //Rt=0.85
   $: rtOptions = [
-    { om: rtLevel0, amount: (R0*(1-rtLevel0)).toFixed(2), decrease: (100*(1-(1-rtLevel0))).toFixed(2) },
-    { om: rtLevel1, amount: (R0*(1-rtLevel1)).toFixed(2), decrease: (100*(1-(1-rtLevel1))).toFixed(2) },
-    { om: rtLevel2, amount: (R0*(1-rtLevel2)).toFixed(2), decrease: (100*(1-(1-rtLevel2))).toFixed(2) },
-    { om: rtLevel3, amount: (R0*(1-rtLevel3)).toFixed(2), decrease: (100*(1-(1-rtLevel3))).toFixed(2) },
-    { om: rtLevel4, amount: (R0*(1-rtLevel4)).toFixed(2), decrease: (100*(1-(1-rtLevel4))).toFixed(2) },
+    { name: 'Normal', index: 0, om: rtLevel0, amount: (R0*(1-rtLevel0)).toFixed(2), decrease: (100*(1-(1-rtLevel0))).toFixed(2) },
+    { name: 'Prepare', index: 1, om: rtLevel1, amount: (R0*(1-rtLevel1)).toFixed(2), decrease: (100*(1-(1-rtLevel1))).toFixed(2) },
+    { name: 'Reduce', index: 2, om: rtLevel2, amount: (R0*(1-rtLevel2)).toFixed(2), decrease: (100*(1-(1-rtLevel2))).toFixed(2) },
+    { name: 'Restrict', index: 3, om: rtLevel3, amount: (R0*(1-rtLevel3)).toFixed(2), decrease: (100*(1-(1-rtLevel3))).toFixed(2) },
+    { name: 'Lockdown', index: 4, om: rtLevel4, amount: (R0*(1-rtLevel4)).toFixed(2), decrease: (100*(1-(1-rtLevel4))).toFixed(2) },
   ]
   
   $: staticLines = [
@@ -1473,7 +1473,7 @@ function getInitialState() {
       <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
     </div>
     <div style="display: flex; justify-content: flex-end; align-items: center; padding-top: 10px;">
-      <InterventionLineTable data={interventionLines} startDate={startDate} R0={R0} />
+      <InterventionLineTable data={interventionLines} rtOptions={rtOptions} startDate={startDate} R0={R0} />
     </div>
     <!-- <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 71px 0 0;">
       <span class="paneltitle">Lock y axis: </span>

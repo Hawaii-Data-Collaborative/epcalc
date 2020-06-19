@@ -37,26 +37,36 @@ export default {
   rtLevel4: 0.66,
   rtOptions: [
     {
+      name: 'Normal', 
+      index: 0, 
       om: 0,
       amount: '2.50',
       decrease: '0.00',
     },
     {
+      name: 'Prepare', 
+      index: 1, 
       om: 0.28,
       amount: '1.80',
       decrease: '28.00',
     },
     {
+      name: 'Reduce', 
+      index: 2, 
       om: 0.52,
       amount: '1.20',
       decrease: '52.00',
     },
     {
+      name: 'Restrict', 
+      index: 3, 
       om: 0.6,
       amount: '1.00',
       decrease: '60.00',
     },
     {
+      name: 'Lockdown', 
+      index: 4, 
       om: 0.66,
       amount: '0.85',
       decrease: '66.00',

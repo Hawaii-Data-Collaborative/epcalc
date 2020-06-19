@@ -187,11 +187,11 @@
           <input class="range" type=range min=0 max=1 step=0.01 value={om} on:mousedown={lock_yaxis} on:input={e=> onLineChange(e, index, true)}>
         {:else}
           <select value={om} class="select-rt" on:change={e=>onLineChange(e, index, true)}>
-            <option value={rtOptions[0].om}>Level 0 • Normal • Rt={rtOptions[0].amount}</option>
-            <option value={rtOptions[1].om}>Level 1 • Prepare • Rt={rtOptions[1].amount}</option>
-            <option value={rtOptions[2].om}>Level 2 • Reduce • Rt={rtOptions[2].amount}</option>
-            <option value={rtOptions[3].om}>Level 3 • Restrict • Rt={rtOptions[3].amount}</option>
-            <option value={rtOptions[4].om}>Level 4 • Lockdown • Rt={rtOptions[4].amount}</option>
+            <option value={rtOptions[0].om}>Level {rtOptions[0].index} • {rtOptions[0].name} • Rt={rtOptions[0].amount}</option>
+            <option value={rtOptions[1].om}>Level {rtOptions[1].index} • {rtOptions[1].name} • Rt={rtOptions[1].amount}</option>
+            <option value={rtOptions[2].om}>Level {rtOptions[2].index} • {rtOptions[2].name} • Rt={rtOptions[2].amount}</option>
+            <option value={rtOptions[3].om}>Level {rtOptions[3].index} • {rtOptions[3].name} • Rt={rtOptions[3].amount}</option>
+            <option value={rtOptions[4].om}>Level {rtOptions[4].index} • {rtOptions[4].name} • Rt={rtOptions[4].amount}</option>
           </select>
         {/if}
       </div>

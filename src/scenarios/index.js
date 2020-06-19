@@ -32,26 +32,36 @@ export function getScenarios(startDate) {
     const rtLevel4 = 0.73 //Rt=0.6
     const rtOptions = [
       {
+        name: 'Normal', 
+        index: 0, 
         om: rtLevel0,
         amount: (R0 * (1 - rtLevel0)).toFixed(2),
         decrease: (100 * (1 - (1 - rtLevel0))).toFixed(2),
       },
       {
+        name: 'Prepare', 
+        index: 1, 
         om: rtLevel1,
         amount: (R0 * (1 - rtLevel1)).toFixed(2),
         decrease: (100 * (1 - (1 - rtLevel1))).toFixed(2),
       },
       {
+        name: 'Reduce', 
+        index: 2, 
         om: rtLevel2,
         amount: (R0 * (1 - rtLevel2)).toFixed(2),
         decrease: (100 * (1 - (1 - rtLevel2))).toFixed(2),
       },
       {
+        name: 'Restrict', 
+        index: 3, 
         om: rtLevel3,
         amount: (R0 * (1 - rtLevel3)).toFixed(2),
         decrease: (100 * (1 - (1 - rtLevel3))).toFixed(2),
       },
       {
+        name: 'Lockdown', 
+        index: 4, 
         om: rtLevel4,
         amount: (R0 * (1 - rtLevel4)).toFixed(2),
         decrease: (100 * (1 - (1 - rtLevel4))).toFixed(2),
