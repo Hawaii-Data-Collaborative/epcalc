@@ -614,14 +614,23 @@ function getInitialState() {
 
   function onAddTravelInfoClick() {
     let D_travel = new Date()
+    let P_travel = 0
+    let P_travelersinfected = 0
+
     const info = _.last(travelInfos)
     if (info) {
       D_travel = addMonths(info.D_travel, 1)
+      P_travel = info.P_travel
+      P_travelersinfected = info.P_travelersinfected
     }
 
     travelInfos = [
       ...travelInfos,
-      { D_travel, P_travel: 0, P_travelersinfected: 0 }
+      { 
+        D_travel, 
+        P_travel, 
+        P_travelersinfected
+      }
     ]
   }
 
@@ -877,6 +886,9 @@ function getInitialState() {
   }
   .rt-row .column + .column {
     margin-left: 0px;
+  }
+  .travel-row + .travel-row {
+    border-top: 1px solid #ddd;
   }
   
   .minorTitle {
@@ -1460,9 +1472,9 @@ function getInitialState() {
       <button on:click={onRemoveLineClick} style="width: 33px; height: 28px;" class="btn btn-icon btn-primary" disabled="{interventionLines.length <= 1 ? 'disabled' : ''}">-</button>
       <button on:click={onAddLineClick} style="border-left: 1px solid #ddd; width: 33px; height: 28px;" class="btn btn-icon btn-primary">+</button>
     </div>
-    <!-- <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 71px 0 0;">
+    <div style="display: flex; justify-content: flex-end; align-items: center; padding-top: 10px;">
       <InterventionLineTable data={interventionLines} startDate={startDate} R0={R0} />
-    </div> -->
+    </div>
     <!-- <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 71px 0 0;">
       <span class="paneltitle">Lock y axis: </span>
       <div style="position: relative; top: -14px; left: 6px;">

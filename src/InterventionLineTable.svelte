@@ -7,13 +7,32 @@
 </script>
 
 <style>
-
+  .InterventionLineTable {
+    font-family: nyt-franklin, helvetica, arial, sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    color: #666;
+    width: 100%;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #aaa;
+    border-bottom: 1px solid #ddd;
+  }
 </style>
 
 <div class="InterventionLineTable">
   <table>
     <thead>
       <tr>
+        <th>Intervention #</th>
         <th>Date</th>
         <th>Rt</th>
       </tr>
@@ -21,8 +40,9 @@
     <tbody>
       {#each data as line, i}
         <tr>
-          <td>{dateFormat(addDays(startDate, line.time), 'M/d')}</td>
-          <td>{(R0*(1-line.amount)).toFixed(2)}</td>
+          <td>{i + 1}</td>
+          <td>{dateFormat(addDays(startDate, line.time), 'M/d/Y')}</td>
+          <td>{(R0 * line.amount).toFixed(2)}</td>
         </tr>
       {/each}
     </tbody>
