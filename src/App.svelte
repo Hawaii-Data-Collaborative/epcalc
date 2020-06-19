@@ -414,7 +414,7 @@ function getInitialState() {
         Susceptible:  formatNumber(Math.round(iter[0])),
         Exposed:      formatNumber(Math.round(iter[1])),
         Infectious:   formatNumber(Math.round(iter[2])),
-        Removed:      formatNumber(Math.round((1-iter[0]-iter[1]-iter[2]))),
+        Removed:      formatNumber(Math.round((N-iter[0]-iter[1]-iter[2]))),
         Recovered:    formatNumber(Math.round((iter[7]+iter[8]))),
         Hospitalized: formatNumber(Math.round((iter[5]+iter[6]))),
         Fatalities:   formatNumber(Math.round(iter[9]))
