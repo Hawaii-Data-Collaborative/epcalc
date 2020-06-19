@@ -239,7 +239,10 @@ function setState(data) {
   
   if (!(data.dt === undefined)) {dt = data.dt}
   
-  if (!(data.travelInfos === undefined)) {travelInfos = data.travelInfos}
+  if (!(data.travelInfos === undefined)) {travelInfos = data.travelInfos.map(ti => ({
+    ...ti,
+    D_travel: _.isString(ti.D_travel) ? new Date(ti.D_travel) : ti.D_travel
+  }))}
   
   if (!(data.rtLevel0 === undefined)) {rtLevel0 = data.rtLevel0}
   if (!(data.rtLevel1 === undefined)) {rtLevel1 = data.rtLevel1}
