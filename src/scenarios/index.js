@@ -3,7 +3,7 @@ import { differenceInCalendarDays, startOfDay, endOfMonth } from 'date-fns'
 export function getScenarios(startDate) {
   const R0 = 2.22 //2.2
 
-  function getScenario(P_SEVERE, P_travel, P_travelersinfected, interventionLines) {
+  function getScenario(P_HOSP, P_travel, P_travelersinfected, interventionLines) {
     const Time_to_death = 12.5 //32
     const logN = Math.log(1415872)
     const N = Math.exp(logN)
@@ -21,7 +21,7 @@ export function getScenarios(startDate) {
     const Time = 220
     const Xmax = 110000
     const dt = 3.07
-    // const P_SEVERE = 0.12 //0.045 //0.2
+    // const P_HOSP = 0.12 //0.045 //0.2
     const duration = 7 * 12 * 1e10
     const D_travel = new Date('2020-07-01T00:00')
 
@@ -87,7 +87,7 @@ export function getScenarios(startDate) {
       Time,
       Xmax,
       dt,
-      P_SEVERE,
+      P_HOSP,
       duration,
       rtLevel0,
       rtLevel1,

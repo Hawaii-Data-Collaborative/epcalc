@@ -17,7 +17,7 @@ export default {
   Time: 220,
   Xmax: 110000,
   dt: 3.07,
-  P_SEVERE: 0.12,
+  P_HOSP: 0.12,
   duration: 840000000000,
   interventionLines: [
     {

@@ -106,7 +106,7 @@
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 2
-  $: P_SEVERE          = 0.12 //0.045 //0.2
+  $: P_HOSP            = 0.12 //0.045 //0.2
   $: duration          = 7*12*1e10
 
   $: travelInfos = [
@@ -207,14 +207,14 @@
                "InterventionTime":InterventionTime,
                "InterventionAmt":InterventionAmt,
                "D_hospital_lag":D_hospital_lag,
-               "P_SEVERE": P_SEVERE})
+               "P_HOSP": P_HOSP})
 
 let initialState = null
 function serializeState(state) {
   const json = JSON.stringify(state || { 
     Time_to_death, logN, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, 
     D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, 
-    InterventionAmt, Time, Xmax, dt, P_SEVERE, duration, interventionLines,
+    InterventionAmt, Time, Xmax, dt, P_HOSP, duration, interventionLines,
     rtLevel0, rtLevel1, rtLevel2, rtLevel3, rtLevel4, rtOptions,
     travelInfos
   })
@@ -234,7 +234,7 @@ function setState(data) {
   if (!(data.InterventionTime === undefined)) {InterventionTime = parseFloat(data.InterventionTime)}
   if (!(data.InterventionAmt === undefined)) {InterventionAmt = parseFloat(data.InterventionAmt)}
   if (!(data.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(data.D_hospital_lag)}
-  if (!(data.P_SEVERE === undefined)) {P_SEVERE = parseFloat(data.P_SEVERE)}
+  if (!(data.P_HOSP === undefined)) {P_HOSP = parseFloat(data.P_HOSP)}
   if (!(data.Time_to_death === undefined)) {Time_to_death = parseFloat(data.Time_to_death)}
   
   if (!(data.dt === undefined)) {dt = data.dt}
@@ -270,9 +270,9 @@ function getInitialState() {
   return initialState === null ? null : JSON.parse(initialState)
 }
 
-// dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
+// dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_HOSP, CFR, InterventionTime, InterventionAmt, duration
 
-  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, interventionLines, duration, travelInfos) {
+  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_HOSP, CFR, interventionLines, duration, travelInfos) {
     var interpolation_steps = 40
     var steps = 110*interpolation_steps
     var dt = dt/interpolation_steps
@@ -335,9 +335,9 @@ function getInitialState() {
       var R_Severe = x[8] // Recovered
       var R_Fatal  = x[9] // Dead
 
-      var p_severe = P_SEVERE
+      var p_severe = P_HOSP - CFR
       var p_fatal  = CFR
-      var p_mild   = 1 - P_SEVERE - CFR
+      var p_mild   = 1 - P_HOSP
 
       var I_travelers = getITravelers()
       var I_combined  = I + I_travelers
@@ -404,7 +404,7 @@ function getInitialState() {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, sortedInterventionLines, duration, travelInfos)
+  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_HOSP, CFR, sortedInterventionLines, duration, travelInfos)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -1629,8 +1629,8 @@ function getInitialState() {
       <div class="column">
         <div class="paneltitle">Care statistics</div>
         <div class="paneldesc" style="height:30px">Hospitalization rate.<br></div>
-        <div class="slidertext">{(P_SEVERE*100).toFixed(2)} %</div>
-        <input class="range" style="margin-bottom: 8px"type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
+        <div class="slidertext">{(P_HOSP*100).toFixed(2)} %</div>
+        <input class="range" style="margin-bottom: 8px"type=range bind:value={P_HOSP} min={0} max=1 step=0.0001>      
         <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time to hospitalization.<br></div>
         <div class="slidertext">{D_hospital_lag} Days</div>
         <input class="range" type=range bind:value={D_hospital_lag} min={0.5} max=100 step=0.01>
